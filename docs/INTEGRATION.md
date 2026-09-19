@@ -73,3 +73,9 @@ O usuário confirmou que a revisão 0.2.1 ficou quase toda correta e apontou car
 A solicitação também esclarece o contrato de ativação: tema integra nAGI, sem opt-in separado. A migração descarta o campo antigo e preserva os valores de paleta e fonte. Network permanece o preset padrão entre as paletas disponíveis. A sidebar começa oculta na instalação limpa; preferências posteriores continuam salvas.
 
 O indicador Thinking utiliza a fase estimada pelo adapter existente. Enquanto o site não monta a nova mensagem assistente, há um indicador próprio do nAGI, excluído dos seletores de mensagens e prompts. Ao montar a resposta, apenas a identidade própria muda de posição, mantendo o DOM nativo intacto. Não há novo acesso a APIs ou conteúdo privado.
+
+## Tela inicial Work · 0.2.3
+
+O print enviado antes de testar 0.2.2 mostra que o shell ocultou o acesso ao seletor Chat/Work e que saudação, barra de abas e cards de sugestões mantiveram fontes/fundos nativos. O print fornece evidência visual, mas não os elementos e atributos do seletor. Os hooks de modo desta revisão são candidatos exercitados em fixtures e incluem fallback explícito para a navegação original.
+
+Não são criados URLs presumidos como parâmetro de modo, chamadas internas ou alterações diretas ao storage do ChatGPT. Links/botões existentes conduzem a seleção. A raiz do site e Novo chat continuam respeitando o comportamento nativo; o seletor fica acessível no layout nAGI. A detecção e o estado ativo podem ser conferidos no diagnóstico formato 6.

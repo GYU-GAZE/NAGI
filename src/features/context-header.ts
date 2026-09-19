@@ -1,5 +1,6 @@
 import { resolveHeader, headerControls, headerAction } from "../adapter/header";
 import { Marks } from "./marks";
+import { resolveModeControls } from "../adapter/modes";
 /** Fixed descendants can be local to transformed/contained ancestors, including scrollers. */
 export function fixedCoordinates(node: HTMLElement, x: number, y: number) {
   for (
@@ -39,6 +40,8 @@ export class ContextHeaderBridge {
   private initiallyUnstyled = new Set<HTMLElement>();
   private slot: HTMLElement | null = null;
   private available = 0;
+  private modeControl: HTMLElement | null = null;
+  private modeSlot: HTMLElement | null = null;
   private timer: ReturnType<typeof setTimeout> | undefined;
   private onScroll = () => {
     if (!this.timer)
@@ -53,6 +56,14 @@ export class ContextHeaderBridge {
     let x = 0,
       y = 0;
     for (const [node, w] of this.controls) {
+      if (node === this.modeControl && this.modeSlot) {
+        const r = this.modeSlot.getBoundingClientRect();
+        const point = fixedCoordinates(node, r.left, r.top);
+        node.style.setProperty("--nagi-dock-x", `${point.x}px`);
+        node.style.setProperty("--nagi-dock-y", `${point.y}px`);
+        node.style.setProperty("--nagi-dock-w", "124px");
+        continue;
+      }
       if (x && x + w > this.available) {
         x = 0;
         y += 40;
@@ -86,11 +97,23 @@ export class ContextHeaderBridge {
       passive: true,
     });
   }
-  refresh(slot: HTMLElement, enabled: boolean) {
+  refresh(slot: HTMLElement, enabled: boolean, modeSlot?: HTMLElement) {
     const header = enabled ? resolveHeader() : null;
+    const modes = resolveModeControls();
     const candidates = headerControls(header).filter(
-      (e) => e.matches("button,[role=button]") || headerAction(e) !== null,
+      (e) =>
+        e !== modes.chat &&
+        e !== modes.work &&
+        e !== modes.trigger &&
+        (e.matches("button,[role=button]") || headerAction(e) !== null),
     );
+    this.modeControl =
+      modeSlot && header && modes.trigger && header.contains(modes.trigger)
+        ? modes.trigger
+        : null;
+    this.modeSlot = modeSlot ?? null;
+    if (this.modeControl) candidates.push(this.modeControl);
+    if (modeSlot) modeSlot.hidden = !this.modeControl;
     const next = new Set(candidates);
     for (const node of this.controls.keys())
       if (!next.has(node)) {
@@ -111,16 +134,19 @@ export class ContextHeaderBridge {
           ),
         );
       }
+    const actionWidths = [...this.controls]
+      .filter(([node]) => node !== this.modeControl)
+      .map(([, w]) => w);
     const gap = 6;
     const width =
-      [...this.controls.values()].reduce((n, w) => n + w, 0) +
-      Math.max(0, this.controls.size - 1) * gap;
+      actionWidths.reduce((n, w) => n + w, 0) +
+      Math.max(0, actionWidths.length - 1) * gap;
     const available = Math.min(width, Math.max(200, window.innerWidth - 32));
     slot.style.width = `${available}px`;
     slot.hidden = !width;
     let rowWidth = 0,
       rows = 1;
-    for (const w of this.controls.values()) {
+    for (const w of actionWidths) {
       if (rowWidth && rowWidth + w > available) {
         rows++;
         rowWidth = 0;
@@ -137,7 +163,11 @@ export class ContextHeaderBridge {
       "data-nagi-shell-reserve",
       enabled && !header,
     );
-    return { header: !!header, controls: this.controls.size };
+    return {
+      header: !!header,
+      controls: this.controls.size,
+      modeDocked: !!this.modeControl,
+    };
   }
   dispose() {
     window.removeEventListener("scroll", this.onScroll, true);

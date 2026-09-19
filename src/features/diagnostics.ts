@@ -1,3 +1,4 @@
+import { resolveModeControls } from "../adapter/modes";
 import { resolveAuxiliaryPanels } from "./auxiliary-panels";
 import { resolveMessageGroups } from "../adapter/messages";
 import type { State } from "../shared/model";
@@ -125,6 +126,7 @@ function ancestors(el: Element | null, maximum = 12) {
 export function createDiagnosticReport(state: State, doc: Document = document) {
   const r = resolveRegions(doc);
   const header = resolveHeader(doc);
+  const modes = resolveModeControls(doc);
   const messages = resolveMessageGroups(doc);
   const win = doc.defaultView;
   const browser =
@@ -136,7 +138,7 @@ export function createDiagnosticReport(state: State, doc: Document = document) {
   const root = doc.documentElement;
   return {
     format: "nagi-diagnostics",
-    formatVersion: 5,
+    formatVersion: 6,
     extensionVersion: VERSION,
     createdAt: new Date().toISOString(),
     privacy:
@@ -199,6 +201,8 @@ export function createDiagnosticReport(state: State, doc: Document = document) {
       headerIntegration:
         root.hasAttribute("data-nagi-header-active") ||
         !!doc.querySelector("[data-nagi-context-header]"),
+      homeRegions: doc.querySelectorAll("[data-nagi-home]").length,
+      nativePanels: doc.querySelectorAll("[data-nagi-native-panel]").length,
       networkLayout: root.getAttribute("data-nagi-layout") === "network",
       dockedControls: doc.querySelectorAll("[data-nagi-docked]").length,
       messageCards: doc.querySelectorAll("[data-nagi-message-card]").length,
@@ -216,6 +220,11 @@ export function createDiagnosticReport(state: State, doc: Document = document) {
         .length,
     },
     matches: {
+      modes: {
+        paired: !!modes.chat && !!modes.work,
+        menu: !!modes.trigger,
+        active: modes.active,
+      },
       header: !!header,
       headerControls: headerControls(header).map(
         (e) => headerAction(e) ?? "other",

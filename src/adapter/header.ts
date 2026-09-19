@@ -1,3 +1,4 @@
+import { resolveModeControls } from "./modes";
 import { resolveMessageGroups } from "./messages";
 /** Only public DOM. No React state, internal endpoints or copied click handlers. */
 const headerSelector =
@@ -70,6 +71,20 @@ export function resolveHeader(doc: Document = document): HTMLElement | null {
     (node) => safeHeader(node, groups) && topStrip(node),
   );
   if (known) return known;
+  // Home can have only a Chat/Work selector and no Share action yet.
+  const modes = resolveModeControls(doc);
+  for (const control of [modes.chat, modes.work, modes.trigger]) {
+    let found: HTMLElement | null = null;
+    for (
+      let parent = control?.parentElement, depth = 0;
+      parent && depth < 6;
+      parent = parent.parentElement, depth++
+    ) {
+      if (!safeHeader(parent, groups)) break;
+      if (topStrip(parent)) found = parent;
+    }
+    if (found) return found;
+  }
   // Work may use a plain div. A Share action plus another live control in a
   // wide, shallow top strip is required; never infer a header from chat text.
   for (const control of doc.querySelectorAll<HTMLElement>(interactive)) {
@@ -115,11 +130,15 @@ export function readHeaderContext(header: HTMLElement | null) {
         parent: walker.currentNode.parentElement,
       });
   }
-  const work = textNodes.some(
-    ({ text, parent }) =>
-      !parent?.closest("[role=menu],[role=dialog]") &&
-      (/^Work$/i.test(text) || /[·|/]\s*Work$/i.test(text)),
-  );
+  const modes = resolveModeControls(header?.ownerDocument ?? document);
+  const work =
+    modes.active || (modes.chat && modes.work)
+      ? modes.active === "work"
+      : textNodes.some(
+          ({ text, parent }) =>
+            !parent?.closest("[role=menu],[role=dialog]") &&
+            (/^Work$/i.test(text) || /[·|/]\s*Work$/i.test(text)),
+        );
   const explicit = header
     ?.querySelector<HTMLElement>(
       '[data-testid="conversation-title"],[data-testid="chat-title"],[data-testid="conversation-title-button"],h1',
@@ -131,7 +150,7 @@ export function readHeaderContext(header: HTMLElement | null) {
         text &&
         !/^(?:Work|[·|/])$/i.test(text) &&
         !parent?.closest(
-          "button,a,[role=button],svg,[role=menu],[role=dialog],[hidden]",
+          "button,a,[role=button],[role=tab],svg,[role=menu],[role=dialog],[hidden]",
         ),
     )
     .map(({ text }) => text)

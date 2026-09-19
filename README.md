@@ -1,8 +1,18 @@
-# nAGI · 0.2.2
+# nAGI · 0.2.3
 
 Extensão modular para o **ChatGPT Web oficial**. Sem API key, backend próprio, telemetria ou alteração automática das instruções da conta.
 
 **Este pacote é experimental.** O usuário confirmou que quase toda a revisão 0.2.1 ficou correta no ChatGPT Work/Firefox. A 0.2.2 integra o tema ao funcionamento padrão, corrige a largura de prompts curtos e mostra a identidade durante Thinking. As novas mudanças passaram pelos testes locais; sua confirmação visual no frontend autenticado continua pendente.
+
+## Atualização 0.2.3 · Chat/Work e aparência da tela inicial
+
+- Seletor de modo junto ao logotipo nAGI: Chat e Work usam os controles reais encontrados na navegação. A seleção destacada vem dos atributos nativos, sem presumir o modo pela URL inicial.
+- Quando o site oferece um menu de modo no cabeçalho, o próprio botão é posicionado no topo nAGI, mantendo os eventos e o menu nativos. Não há clique automático ao abrir a página.
+- Se o seletor não for reconhecido, **Chat / Work** revela a navegação original e oferece **Voltar ao layout nAGI**. Isso evita perder o acesso ao modo. Não se inventam rotas ou endpoints para alterar preferências da conta.
+- Fonte e cores do tema passam a cobrir também saudação inicial, sugestões, abas, menus, diálogos e painéis nativos. Cards e abas usam a cor editável do campo de mensagem; bordas e estados usam texto/destaque. Imagens, SVGs, código, fórmulas e aplicativos embutidos são preservados.
+- Diagnóstico formato 6 inclui detecção de modos e cobertura de regiões da tela inicial, sem exportar rótulos, sugestões, URLs ou conteúdo das conversas.
+
+A 0.2.2 não incluía essas duas correções. Elas estão nesta versão, junto com todas as alterações anteriores. O comportamento foi verificado em fixtures locais; o seletor exato da conta do usuário ainda precisa ser confirmado no Firefox/Work.
 
 ## Atualização 0.2.2 · tema integrado, prompts compactos e Thinking
 

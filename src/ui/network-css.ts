@@ -5,6 +5,10 @@ export const networkCSS = `
 :host([data-network-shell]) .brand{display:flex;align-items:center;gap:20px;flex-shrink:0;margin:0 14px 0 0;padding-right:24px;border-right:1px solid var(--nagi-line);color:var(--nagi-accent,#32d9f5)}
 .brand-word{font:bold 38px/1 monospace;letter-spacing:3px;text-shadow:0 2px 0 color-mix(in srgb,var(--nagi-accent) 35%,transparent)}
 .brand-note{font:9px/1.5 monospace;letter-spacing:1px;white-space:pre-line}
+.native-mode-slot{width:124px;height:34px;pointer-events:none}
+.mode-switcher{display:flex;align-items:center;gap:3px;flex-shrink:0;padding:3px;border:1px solid var(--nagi-line);border-radius:6px;background:var(--nagi-ui-panel)}
+.bar .mode-switcher button{font:12px/1.4 var(--nagi-ui-font,monospace);padding:7px 10px;min-height:32px;background:transparent;border:1px solid transparent;color:var(--nagi-ui-text);white-space:nowrap}
+.bar .mode-switcher button[aria-pressed=true]{color:var(--nagi-accent);border-color:var(--nagi-accent);background:color-mix(in srgb,var(--nagi-accent) 12%,var(--nagi-ui-panel))}
 :host([data-network-shell]) .bar .tool{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;min-width:65px;height:62px;padding:6px 8px;border:1px solid transparent;background:transparent;border-radius:5px;color:var(--nagi-ui-text);font-size:11px;white-space:nowrap;flex-shrink:0}
 :host([data-network-shell]) .tool svg{color:var(--nagi-accent)}
 :host([data-network-shell]) .bar button:hover{background:color-mix(in srgb,var(--nagi-accent) 10%,transparent);border-color:var(--nagi-line)}

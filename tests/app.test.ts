@@ -392,3 +392,39 @@ test("layout settings persist module toggles, keep editing isolated and restore 
     f.cleanup();
   }
 });
+
+test("unknown mode switch restores native navigation and returns to nAGI without changing the theme", async () => {
+  const f = await fixture();
+  try {
+    click(f.root, "Alternar entre Chat e Work");
+    await tick();
+    assert.equal((await f.client.state()).settings.navigation, "native");
+    assert.equal((await f.client.state()).settings.hideSidebar, false);
+    assert.equal(
+      document.querySelector("#history")!.hasAttribute("data-nagi-sidebar"),
+      false,
+    );
+    assert.equal(
+      document
+        .querySelector("#page-header")!
+        .hasAttribute("data-nagi-context-header"),
+      false,
+    );
+    assert.equal(
+      document.documentElement.hasAttribute("data-nagi-theme"),
+      true,
+    );
+    click(f.root, "Voltar ao layout nAGI");
+    await tick();
+    assert.equal((await f.client.state()).settings.navigation, "topbar");
+    assert.equal((await f.client.state()).settings.hideSidebar, true);
+    assert.equal(
+      document
+        .querySelector("#page-header")!
+        .hasAttribute("data-nagi-context-header"),
+      true,
+    );
+  } finally {
+    f.cleanup();
+  }
+});

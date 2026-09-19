@@ -10,6 +10,7 @@ import { DOMChatGPTAdapter, type Snapshot } from "./adapter/chatgpt";
 import { ComposerIdentity } from "./features/composer-identity";
 import { LayoutTheme } from "./features/layout-theme";
 import { MessageLayout } from "./features/message-layout";
+import { NativeTheme } from "./features/native-theme";
 import { Appearance } from "./features/appearance";
 import { TurnOptimizer } from "./features/performance";
 import { SendGuard } from "./features/send-guard";
@@ -28,6 +29,7 @@ export async function startApp(client: Client) {
   const appearance = new Appearance();
   const optimizer = new TurnOptimizer();
   const layout = new LayoutTheme();
+  const nativeTheme = new NativeTheme();
   const messages = new MessageLayout();
   let shell: Shell;
   const composerIdentity = new ComposerIdentity(() => shell.open("answer"));
@@ -117,6 +119,7 @@ export async function startApp(client: Client) {
   function apply() {
     safe("appearance", () => appearance.apply(current.settings));
     safe("layout-theme", () => layout.apply(current.settings));
+    safe("native-theme", () => nativeTheme.apply(current.settings.enabled));
     safe("message-layout", () =>
       messages.apply(current, selection, latest?.phase ?? "unknown"),
     );
@@ -199,6 +202,7 @@ export async function startApp(client: Client) {
     }
     safe("appearance", () => appearance.refreshRegions(current.settings));
     safe("layout-theme", () => layout.apply(current.settings));
+    safe("native-theme", () => nativeTheme.apply(current.settings.enabled));
     safe("message-layout", () =>
       messages.apply(current, selection, snapshot.phase),
     );
@@ -226,6 +230,7 @@ export async function startApp(client: Client) {
       composerIdentity.dispose();
       messages.dispose();
       layout.dispose();
+      nativeTheme.dispose();
       appearance.dispose();
       optimizer.dispose();
       shell.dispose();

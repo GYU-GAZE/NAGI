@@ -7,6 +7,8 @@ import { PromptNavigator } from "../features/prompt-navigator";
 import { ContextBar } from "./context-bar";
 import { icon } from "./icons";
 import { networkCSS } from "./network-css";
+import { ModeSwitcher } from "./mode-switcher";
+import { resolveModeControls } from "../adapter/modes";
 import { HeaderIntegration } from "../features/header";
 import type { State, Selection, Chain, Phase } from "../shared/model";
 import type { ChatGPTAdapter, Snapshot } from "../adapter/chatgpt";
@@ -36,6 +38,10 @@ export class Shell {
   private header = new HeaderIntegration();
   private nativeContext = new ContextHeaderBridge();
   private auxiliaryPanels = new AuxiliaryPanels();
+  private modes = new ModeSwitcher(
+    () => void this.revealModes(),
+    (text) => this.message(text),
+  );
   private prompts = new PromptNavigator(() => this.open("prompts"));
   private context = new ContextBar(
     (kind) => this.open(kind),
@@ -173,6 +179,7 @@ export class Shell {
     home.append(icon("home"), el("span", "Início"));
     this.bar.append(
       brand,
+      this.modes.host,
       home,
       tool("Novo chat", "plus", () => this.ctx.adapter.newChat()),
       tool("Chats recentes", "recent", () => this.open("recent")),
@@ -228,6 +235,7 @@ export class Shell {
     const network =
       s.enabled && s.navigation === "topbar" && s.layout.variant === "network";
     const root = document.documentElement;
+    this.modes.update(network);
     if (network) {
       this.header.refresh({ ...s, navigation: "native" }, 0);
       this.host.removeAttribute("data-nagi-header-shell");
@@ -238,7 +246,12 @@ export class Shell {
         this.ctx.adapter.projects(),
       );
       this.prompts.update(s.layout.promptNavigator, s.reduceMotion);
-      this.nativeContext.refresh(this.context.nativeSlot, true);
+      const integrated = this.nativeContext.refresh(
+        this.context.nativeSlot,
+        true,
+        this.modes.nativeSlot,
+      );
+      this.modes.setDocked(integrated.modeDocked);
       const height =
         this.bar.getBoundingClientRect().height +
         this.context.host.getBoundingClientRect().height;
@@ -255,6 +268,36 @@ export class Shell {
     }
     this.auxiliaryPanels.apply(network);
     this.isolated.resize();
+  }
+  private async revealModes() {
+    const { navigation, hideSidebar } = this.ctx.state().settings;
+    try {
+      const state = await this.ctx.client.mutate({
+        type: "settings",
+        patch: { navigation: "native", hideSidebar: false },
+      });
+      this.ctx.refresh(state);
+      this.close();
+      this.message("Escolha Chat ou Work na navegação original.", [
+        {
+          label: "Voltar ao layout nAGI",
+          run: () => {
+            void this.ctx.client
+              .mutate({ type: "settings", patch: { navigation, hideSidebar } })
+              .then((st) => {
+                this.ctx.refresh(st);
+                this.messages.replaceChildren();
+              })
+              .catch((e) => this.message(String(e)));
+          },
+        },
+      ]);
+      const trigger = resolveModeControls().trigger;
+      if (trigger && !trigger.matches(":disabled,[aria-disabled=true]"))
+        trigger.click();
+    } catch (e) {
+      this.message(String(e));
+    }
   }
   update(snapshot: Snapshot) {
     this.currentPhase = snapshot.phase;

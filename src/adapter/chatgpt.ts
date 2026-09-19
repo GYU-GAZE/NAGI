@@ -216,7 +216,16 @@ export class DOMChatGPTAdapter implements ChatGPTAdapter {
       childList: true,
       characterData: true,
       attributes: true,
-      attributeFilter: ["disabled", "data-testid", "aria-label"],
+      attributeFilter: [
+        "disabled",
+        "data-testid",
+        "aria-label",
+        "aria-selected",
+        "aria-pressed",
+        "aria-current",
+        "aria-checked",
+        "data-state",
+      ],
     });
     // Lightweight fallback also detects pushState and completion without patching React/history.
     const interval = setInterval(schedule, 1000);

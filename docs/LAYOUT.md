@@ -1,4 +1,4 @@
-# Layout Network · 0.2.2
+# Layout Network · 0.2.3
 
 ![Referência visual fornecida pelo usuário](reference-network.png)
 
@@ -10,6 +10,8 @@ Implementação estrutural da referência enviada pelo usuário: barra de ferram
 
 | Responsabilidade | Arquivos | Configuração |
 | --- | --- | --- |
+| Seleção Chat/Work | `src/adapter/modes.ts`, `src/ui/mode-switcher.ts` | Automática no modo Network/topbar |
+| Tela inicial e aparência da interface nativa | `src/features/native-theme.ts` | Integrada ao tema ativo |
 | Ferramentas e coordenação de painéis | `src/ui/shell.ts`, `src/ui/network-css.ts`, `src/ui/icons.ts` | `navigation`, `layout.variant` |
 | Título, projeto, Work, Chain, Persona e sessões vizinhas | `src/ui/context-bar.ts` | `layout.contextBar` |
 | Posicionamento de Share, More e Files and Sources reais | `src/features/context-header.ts`, `src/adapter/header.ts` | Automático no modo Network/topbar |
@@ -57,7 +59,7 @@ Não se aceita CSS/JS arbitrário nas configurações. Isso mantém dimensões e
 
 A 0.1.1 e a composição geral da 0.2.0 foram confirmadas pelo usuário em Firefox/Work. As correções da 0.2.1 ainda precisam de confirmação visual nesse frontend. Esta estrutura Network foi testada com fixtures DOM, incluindo uma variante sem os articles de conversa antigos. Os testes cobrem conservação de nós e handlers, rascunho, privacidade, seleção de prompts, troca de módulo e restauração. JSDOM não renderiza o layout real: dimensões dos testes são simuladas. Não houve inspeção autenticada nem comparação visual desta revisão no navegador do usuário.
 
-O diagnóstico formato 5 registra configurações estruturais, contagem de papéis, cards e controles, além de amostras de geometria/estilos sem texto. Se Work usar hooks semânticos diferentes, `adapter/messages.ts` pode precisar de novos seletores. Não se classifica uma mensagem como usuário/assistente pela prosa ou cor de uma bolha.
+O diagnóstico formato 6 registra configurações estruturais, contagem de papéis, cards e controles, além de amostras de geometria/estilos sem texto. Se Work usar hooks semânticos diferentes, `adapter/messages.ts` pode precisar de novos seletores. Não se classifica uma mensagem como usuário/assistente pela prosa ou cor de uma bolha.
 
 ## Agrupamento e posicionamento · 0.2.1
 
@@ -74,3 +76,11 @@ O envelope da mensagem mantém a coluna comum de raciocínio e ações. Somente 
 `MessageLayout` apresenta a identidade no topo do envelope da resposta durante Thinking, ao lado da região de raciocínio. Quando ainda não existe uma mensagem assistente atual, cria um indicador próprio após o último prompt; esse indicador não é classificado como mensagem e não entra na navegação de prompts. Ao aparecer a resposta, o indicador provisório sai. Durante talking/idle a identidade volta a acompanhar o card. Só a última mensagem, quando assistente, pode receber o estado atual; respostas anteriores permanecem idle.
 
 O avatar usa thinking, com fallback para idle ou monograma. Nome e retrato seguem os módulos de identidade existentes. O estado continua sendo uma estimativa baseada nos sinais visíveis de geração; não é uma leitura de estado interno do modelo.
+
+## Seleção de modo e tema nativo · 0.2.3
+
+O seletor Chat/Work fica próximo ao logotipo, separado das ações da conversa. Pares de tabs, botões ou links nativos são reconhecidos em regiões de navegação. Os botões nAGI acionam esses controles somente quando o usuário escolhe um modo. Links de conversa/projeto, links externos e controles dentro de mensagens são excluídos. O estado ativo vem de aria-selected/pressed/checked/current ou data-state, nunca da presença isolada das palavras Chat e Work.
+
+Um trigger de menu reconhecido no cabeçalho usa docking para um espaço próprio na barra superior. O botão original permanece no mesmo pai; menus mantêm suas âncoras. Sem correspondência segura, o seletor oferece acesso à navegação original com retorno explícito ao layout. Essa recuperação altera apenas as opções de navegação/sidebar da extensão; não altera o tema nem as instruções da conta.
+
+O módulo NativeTheme aplica fonte e cor de texto à interface nativa, com exclusões para código, fórmulas, mídia, conteúdo embutido e controles próprios. Sem mensagens carregadas, marca a tela inicial e normaliza superfícies de sugestões/abas. Menus, diálogos e painéis têm superfícies baseadas na cor do composer, bordas derivadas do texto e destaque configurável. O módulo não remove controles ou inventa conteúdo de sugestões. Marcas são retiradas quando a página muda ou nAGI é pausado.
