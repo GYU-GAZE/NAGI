@@ -46,6 +46,7 @@ export interface Settings {
   personas: boolean;
   chains: boolean;
   performance: boolean;
+  performanceMode: "off" | "safe" | "aggressive";
   keepTurns: number;
   showAvatar: boolean;
   showName: boolean;
@@ -172,6 +173,7 @@ export function initialState(): State {
       personas: true,
       chains: true,
       performance: false,
+      performanceMode: "off",
       keepTurns: 30,
       showAvatar: true,
       showName: true,

@@ -58,6 +58,7 @@ export function validateSettings(s: Settings) {
   if (!["native", "topbar"].includes(s.navigation)) fail("Navegacao invalida.");
   if (!Number.isInteger(s.keepTurns) || s.keepTurns < 4 || s.keepTurns > 200)
     fail("Mantenha entre 4 e 200 turnos.");
+  if (!["off","safe","aggressive"].includes(s.performanceMode)) fail("Modo de desempenho inválido");
   const l = s.layout;
   if (!l || !["network", "compact"].includes(l.variant))
     fail("Layout inválido.");
@@ -162,6 +163,7 @@ export function migrate(value: unknown): State {
   if (!s.settings || typeof s.settings !== "object")
     fail("Configurações inválidas.");
   if (s.settings.layout === undefined) s.settings.layout = { ...defaultLayout };
+  if (s.settings.performanceMode === undefined) s.settings.performanceMode = s.settings.performance ? "safe" : "off";
   // Appearance is intrinsic to enabled nAGI; discard the retired opt-in flag.
   delete (s.settings as Settings & { appearance?: unknown }).appearance;
   validateState(s);

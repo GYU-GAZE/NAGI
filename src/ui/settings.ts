@@ -120,14 +120,9 @@ export class SettingsUI {
         "Os módulos estruturais e a identidade visual das mensagens podem ser ajustados na aba Layout. A navegação original continua disponível para recuperação.",
       ),
     );
-    this.body.append(
-      el("h3", "Experimento de desempenho"),
-      checkbox(
-        "Aplicar content-visibility em turnos antigos",
-        s.performance,
-        (v) => void this.run(() => this.settings({ performance: v })),
-      ),
-    );
+    const mode = select([["off","Off"],["safe","Safe"],["aggressive","Aggressive · experimental"]],s.performance ? s.performanceMode === "aggressive" ? "aggressive" : "safe" : "off");
+    mode.onchange=()=>void this.run(()=>this.settings({performance:mode.value!=="off",performanceMode:mode.value as Settings["performanceMode"]}));
+    this.body.append(field("Desempenho",mode),note("Aggressive reduz a renderização de mensagens distantes. Desligue para restaurar imediatamente o conteúdo; não remove nós do ChatGPT."));
     const keep = input(String(s.keepTurns), "number");
     keep.min = "4";
     keep.max = "200";
