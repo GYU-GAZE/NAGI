@@ -1,3 +1,4 @@
+import { ConversationService } from "./conversation/service";
 import type { Client } from "./shared/platform";
 import {
   emptySelection,
@@ -24,6 +25,7 @@ export async function startApp(client: Client) {
   let latest: Snapshot;
   let routeEpoch = 0;
   let selectionReady = false;
+  const conversations = new ConversationService(client);
   const adapter = new DOMChatGPTAdapter();
   const appearance = new Appearance();
   const optimizer = new TurnOptimizer();
@@ -81,6 +83,7 @@ export async function startApp(client: Client) {
     changed: () => shell.render(),
   });
   shell = new Shell({
+    conversations,
     client,
     state: () => current,
     refresh,
@@ -112,6 +115,7 @@ export async function startApp(client: Client) {
       health: latest?.health,
       scanMs: latest?.scanMs,
       performance: optimizer.metrics,
+      index: {indexed: conversations.index.size, loaded: conversations.index.loadedCount, ...conversations.registry.metrics, error: conversations.error},
       moduleErrors: errors,
     }),
   });
@@ -161,6 +165,7 @@ export async function startApp(client: Client) {
   const stop = adapter.observe((snapshot) => {
     const old = latest;
     latest = snapshot;
+    conversations.update(snapshot.conversation?.id ?? null);
     if (route !== snapshot.route) {
       const previous = selection;
       const preserve = !old?.conversation && guard.promotesNewChat(snapshot);
@@ -224,6 +229,7 @@ export async function startApp(client: Client) {
   return {
     dispose() {
       stop();
+      conversations.dispose();
       unsubscribe();
       guard.dispose();
       composerIdentity.dispose();

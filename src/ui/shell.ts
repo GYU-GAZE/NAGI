@@ -1,3 +1,4 @@
+import type { ConversationService } from "../conversation/service";
 import { el, button, select, checkbox, note, uiCSS } from "./dom";
 import { SettingsUI, type SettingsContext } from "./settings";
 import { IsolatedPanel } from "./isolated-panel";
@@ -29,6 +30,7 @@ import type { State, Selection, Chain, Phase } from "../shared/model";
 import type { ChatGPTAdapter, Snapshot } from "../adapter/chatgpt";
 import type { Client } from "../shared/platform";
 export interface ShellContext extends SettingsContext {
+  conversations?: ConversationService;
   adapter: ChatGPTAdapter;
   selection(): Selection;
   setSelection(s: Selection): Promise<void>;
@@ -54,12 +56,8 @@ export class Shell {
   private nativeContext = new ContextHeaderBridge();
   private auxiliaryPanels = new AuxiliaryPanels();
   private modes = new ModeSwitcher((text) => this.message(text));
-  private prompts = new PromptNavigator(() => this.open("prompts"));
-  private context = new ContextBar(
-    (kind) => this.open(kind),
-    this.prompts.host,
-    this.modes.host,
-  );
+  private prompts: PromptNavigator;
+  private context: ContextBar;
   private navigationDock = new NavigationDock();
   private shortcutSlots = new Map<SidebarDestination, HTMLElement>();
   private rowTargets: NavigationDockTarget[] = [];
@@ -69,6 +67,8 @@ export class Shell {
   private resizeObserver: ResizeObserver | null = null;
   private onResize = () => this.updateHeader();
   constructor(private ctx: ShellContext) {
+    this.prompts = new PromptNavigator(() => this.open("prompts"),ctx.conversations);
+    this.context = new ContextBar(kind=>this.open(kind),this.prompts.host,this.modes.host);
     this.host.dataset.nagiOwned = "shell";
     this.host.id = "nagi-root";
     this.shadow = this.host.attachShadow({ mode: "open" });
@@ -350,6 +350,7 @@ export class Shell {
     this.messages.append(box);
   }
   close() {
+    this.prompts.panelClosed();
     this.rowTargets = [];
     this.navigationBody = null;
     this.navigationRows = [];

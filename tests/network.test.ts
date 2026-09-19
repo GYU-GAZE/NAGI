@@ -216,7 +216,7 @@ test("prompt navigation counts sent user messages, scrolls loaded nodes, respect
     assert.deepEqual(scrolled, { behavior: "auto", block: "start" });
     const panel = document.createElement("div");
     nav.renderList(panel, () => {});
-    assert.equal(panel.querySelectorAll("button").length, 2);
+    assert.equal(panel.querySelectorAll("[data-virtual-index]").length, 2);
     assert.equal(panel.textContent!.includes("PRIVATE DRAFT"), false);
     assert.equal(panel.textContent!.includes("PRIVATE ANSWER"), false);
     dom.window.history.pushState({}, "", "/c/other");
