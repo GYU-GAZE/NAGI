@@ -224,7 +224,8 @@ test("persona editor persists literal untrusted text and exposes instructions as
       /troca das Custom Instructions.*ainda não/s,
     );
     click(f.panel, "Fechar painel");
-    click(f.root, "Answer with…");
+    click(f.root,"Mais ferramentas");
+    click(f.panel,"Selecionar Persona");
     const select = f.panel.querySelector("select")!;
     select.value = state.personas[0].id;
     select.dispatchEvent(new Event("change", { bubbles: true }));
@@ -473,14 +474,10 @@ test("recent and pinned panels dock the actual sidebar rows, include native dest
       '<button id="scheduled">Scheduled</button><button id="plugins">Plugins</button><a id="codex" href="/codex">Codex</a><button id="nav-more" aria-haspopup="menu">More</button><section><h3>Pinned</h3><ol><li id="pin-row"><a href="/c/one">Pinned one</a><button aria-label="Unpin chat">◆</button><button aria-label="More">⋯</button></li></ol></section><section><h3>Recent chats</h3><ol><li id="recent-row"><a href="/c/two">Recent two</a><button aria-haspopup="menu" aria-label="More">⋯</button></li></ol></section>';
     const parent = document.querySelector("#recent-row")!.parentElement;
     await f.client.mutate({ type: "settings", patch: { debug: false } });
-    for (const label of [
-      "Chats pinnados",
-      "Scheduled",
-      "Plugins",
-      "Codex",
-      "More",
-    ])
-      assert.ok(f.root.querySelector(`[aria-label="${label}"]`));
+    assert.ok(f.root.querySelector('[aria-label="Chats pinnados"]'));
+    for(const label of ["Scheduled","Plugins","Codex","More"]) assert.equal(f.root.querySelector(`[aria-label="${label}"]`),null);
+    click(f.root,"Mais ferramentas");
+    for(const label of ["Scheduled","Plugins","Codex","More"]) assert.ok(f.panel.querySelector(`[aria-label="${label}"]`));
     assert.equal(
       document.querySelector("#nav-more")!.getAttribute("data-nagi-nav-target"),
       "control",

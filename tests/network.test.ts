@@ -285,7 +285,7 @@ test("context separates actual project/work/chain/persona and chain session link
     );
     assert.ok(bar.host.textContent!.includes("Work"));
     assert.ok(bar.host.textContent!.includes("Campaign"));
-    assert.ok(bar.host.textContent!.includes("Persona: ChatGPT"));
+    assert.equal(bar.host.textContent!.includes("Persona: ChatGPT"),false);
     assert.equal(
       bar.host.querySelector<HTMLAnchorElement>(
         '[aria-label="Próxima sessão da Chain"]',

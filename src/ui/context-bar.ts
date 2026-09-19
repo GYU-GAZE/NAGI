@@ -90,12 +90,6 @@ export class ContextBar {
         ),
       );
     }
-    const p = button(`Persona: ${persona?.name ?? "ChatGPT"}`, () =>
-      this.open("answer"),
-    );
-    p.className = "context-badge";
-    p.disabled = !s.personas;
-    this.info.append(p);
     if (chain && index >= 0)
       for (const [step, label] of [
         [-1, "Sessão anterior da Chain"],

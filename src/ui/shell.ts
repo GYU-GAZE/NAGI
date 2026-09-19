@@ -1,3 +1,4 @@
+import { renderPalette, type PaletteCommand } from "./command-palette";
 import { ConversationPanel } from "./conversation-panel";
 import type { ConversationService } from "../conversation/service";
 import { el, button, select, checkbox, note, uiCSS } from "./dom";
@@ -68,6 +69,12 @@ export class Shell {
   private navigationKey = "";
   private resizeObserver: ResizeObserver | null = null;
   private onResize = () => this.updateHeader();
+  private onShortcut = (e:KeyboardEvent) => {
+    if (!this.ctx.state().settings.enabled || e.isComposing || e.defaultPrevented) return;
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && ["k","f"].includes(e.key.toLowerCase())) {
+      e.preventDefault();e.stopPropagation();this.open(e.key.toLowerCase()==="f"?"search":"commands");
+    }
+  };
   constructor(private ctx: ShellContext) {
     this.prompts = new PromptNavigator(() => this.open("prompts"),ctx.conversations);
     if(ctx.conversations)this.conversationPanel=new ConversationPanel(ctx.conversations,this.prompts);
@@ -88,6 +95,7 @@ export class Shell {
     this.isolated = new IsolatedPanel(this.panel, () => this.close());
     this.navigationDock.watchFrame(this.isolated.frame);
     window.addEventListener("resize", this.onResize);
+    window.addEventListener("keydown",this.onShortcut,true);
     if (typeof ResizeObserver !== "undefined") {
       this.resizeObserver = new ResizeObserver(this.onResize);
       this.resizeObserver.observe(this.bar);
@@ -139,15 +147,6 @@ export class Shell {
       button("Chats pinnados", () => this.open("pinned"), "♧"),
       button("Projects", () => this.open("projects"), "▱"),
     );
-    for (const [kind, label] of this.destinations()) {
-      const slot = button(label, () =>
-        this.message(
-          `${label} ainda não foi carregado na navegação do ChatGPT.`,
-        ),
-      );
-      this.shortcutSlots.set(kind, slot);
-      this.bar.append(slot);
-    }
     if (s.chains)
       this.bar.append(
         button("Conversation Chains", () => this.open("chains"), "⛓"),
@@ -160,7 +159,7 @@ export class Shell {
       this.name = el("span", undefined, "name");
       this.dot = el("i", undefined, "state-dot");
       this.stateLabel = el("span", undefined, "badge");
-      const answer = button("Answer with…", () => this.open("answer"));
+      const answer = el("div");
       answer.replaceChildren(this.identity);
       this.identity.append(this.avatar, this.name, this.dot);
       this.bar.append(answer);
@@ -181,6 +180,7 @@ export class Shell {
         "☰",
       ),
       button("Configurações", () => this.open("settings"), "⚙"),
+      button("Mais ferramentas", () => this.open("commands"), "⋯"),
       button("Pausar nAGI", () => this.ctx.pause(), "⏻"),
     );
     this.updateHeader();
@@ -221,21 +221,13 @@ export class Shell {
       tool("Chats pinnados", "pin", () => this.open("pinned")),
       tool("Projects", "folder", () => this.open("projects")),
     );
-    for (const [kind, label] of this.destinations()) {
-      const slot = tool(label, kind, () =>
-        this.message(
-          `${label} ainda não foi carregado na navegação do ChatGPT.`,
-        ),
-      );
-      this.shortcutSlots.set(kind, slot);
-      this.bar.append(slot);
-    }
     if (s.chains)
       this.bar.append(
         tool("Conversation Chains", "chain", () => this.open("chains")),
       );
     this.bar.append(
       tool("Configurações", "settings", () => this.open("settings")),
+      tool("Mais ferramentas", "more", () => this.open("commands"),true),
     );
     if (s.personas) {
       this.identity = el("div", undefined, "identity");
@@ -243,11 +235,11 @@ export class Shell {
       this.avatar.alt = "";
       this.name = el("span", undefined, "name");
       this.dot = el("i", undefined, "state-dot");
-      this.identity.append(this.avatar, this.name, this.dot, el("span", "⌄"));
-      const answer = button("Answer with…", () => this.open("answer"));
+      this.identity.append(this.avatar, this.name, this.dot);
+      const answer = el("div");
       answer.className = "answer-choice";
       answer.replaceChildren(
-        el("span", "Answer with:", "answer-label"),
+        el("span", "Persona:", "answer-label"),
         this.identity,
       );
       this.bar.append(answer);
@@ -354,6 +346,7 @@ export class Shell {
   }
   close() {
     this.prompts.panelClosed();
+    this.shortcutSlots.clear();
     this.conversationPanel?.close();
     this.rowTargets = [];
     this.navigationBody = null;
@@ -373,6 +366,8 @@ export class Shell {
     this.navigationBody = null;
     this.navigationRows = [];
     this.navigationKey = "";
+    this.shortcutSlots.clear();
+    this.conversationPanel?.close();
     this.menu = kind;
     this.lastFocus = this.shadow.activeElement as HTMLElement | null;
     this.panel.replaceChildren();
@@ -387,7 +382,7 @@ export class Shell {
         projects: "Projects",
         chains: "Conversation Chains",
         answer: "Answer with…",
-        prompts: "Navigator", search:"Busca local", bookmarks:"Favoritos e notas", outline:"Outline", tree:"Árvore observada",
+        commands:"Comandos · Ctrl+Shift+K", prompts: "Navigator", search:"Busca local", bookmarks:"Favoritos e notas", outline:"Outline", tree:"Árvore observada",
       } as Record<string, string>
     )[kind];
     head.append(
@@ -444,6 +439,15 @@ export class Shell {
           }),
         );
     }
+    if (kind === "commands") {
+      renderPalette(body,this.commands());
+      const native=el("div",undefined,"row");
+      for(const [destination,label] of this.destinations()) {
+        if(!resolveSidebarControl(destination))continue;
+        const slot=button(label,()=>{});this.shortcutSlots.set(destination,slot);native.append(slot);
+      }
+      body.append(native);
+    }
     if (kind === "prompts") this.prompts.renderList(body, () => this.close());
     if (["search","bookmarks","outline","tree"].includes(kind)) this.conversationPanel?.render(body,kind);
     if (kind === "answer") this.answer(body);
@@ -453,6 +457,16 @@ export class Shell {
     (
       body.querySelector("input,select,button,a") as HTMLElement | null
     )?.focus();
+  }
+  private commands():PaletteCommand[] {
+    const commands:PaletteCommand[] = [
+      ...[["prompts","Navigator"],["search","Buscar na conversa"],["outline","Outline"],["bookmarks","Favoritos, etiquetas e notas"],["tree","Árvore observada"],["recent","Chats recentes"],["pinned","Chats pinnados"],["projects","Projects"],["chains","Chains / continuar conversa"],["answer","Selecionar Persona"],["settings","Configurações e aparência"]].map(([id,label])=>({id,label,run:()=>{this.close();this.open(id);}})),
+      {id:"expand",label:"Expandir todas as mensagens",run:()=>{this.conversationPanel?.focus.expandAll();this.close();}},
+      {id:"sidebar",label:"Mostrar navegação original",run:()=>{void this.ctx.client.mutate({type:"settings",patch:{hideSidebar:false}}).then(s=>this.ctx.refresh(s));this.close();}},
+      {id:"pause",label:"Pausar nAGI",run:()=>this.ctx.pause()},
+    ];
+    for(const p of this.ctx.state().personas)commands.push({id:`persona:${p.id}`,label:`Persona: ${p.name}`,run:()=>{void this.ctx.setSelection({...this.ctx.selection(),personaId:p.id,visualOnly:false}).catch(e=>this.message(String(e)));this.close();}});
+    return commands;
   }
   private destinations(): [SidebarDestination, string][] {
     return [
@@ -567,7 +581,7 @@ export class Shell {
     const targets = [...this.rowTargets];
     for (const [kind, slot] of this.shortcutSlots) {
       const native = resolveSidebarControl(kind);
-      if (slot instanceof HTMLButtonElement) slot.disabled = !native;
+      slot.hidden = !native;
       slot.title = native
         ? slot.getAttribute("aria-label") || kind
         : `${kind}: não encontrado na navegação carregada`;
@@ -717,6 +731,7 @@ export class Shell {
   }
   dispose() {
     window.removeEventListener("resize", this.onResize);
+    window.removeEventListener("keydown",this.onShortcut,true);
     this.resizeObserver?.disconnect();
     this.navigationDock.dispose();
     this.nativeContext.dispose();
