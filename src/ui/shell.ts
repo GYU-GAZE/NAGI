@@ -1,3 +1,4 @@
+import { applyUITheme } from "./theme";
 import { readableConversation } from "../conversation/backup";
 import { downloadText } from "./download";
 import { handoff, type Continuation } from "../conversation/handoff";
@@ -113,6 +114,9 @@ export class Shell {
   }
   render() {
     const s = this.ctx.state().settings;
+    applyUITheme(this.host,s);this.isolated.theme(s);
+    this.host.dataset.brand=s.layout.brand;
+    if(!s.enabled)this.conversationPanel?.focus.expandAll();
     this.host.toggleAttribute(
       "data-network-shell",
       s.enabled && s.navigation === "topbar" && s.layout.variant === "network",
@@ -355,6 +359,7 @@ export class Shell {
     this.navigationBody = null;
     this.navigationRows = [];
     this.navigationKey = "";
+    delete this.isolated.frame.dataset.nagiWidth;
     this.isolated.hide();
     this.menu = null;
     this.refreshNavigation();

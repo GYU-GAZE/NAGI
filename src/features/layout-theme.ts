@@ -1,3 +1,4 @@
+import { accentForeground } from "../ui/theme";
 import type { Settings } from "../shared/model";
 import { resolveRegions } from "../adapter/regions";
 import { Marks } from "./marks";
@@ -18,7 +19,7 @@ html[data-nagi-composer-frame] [data-nagi-layout-composer]{position:relative!imp
 html[data-nagi-composer-frame] [data-nagi-layout-composer]:focus-within{outline:1px solid var(--nagi-accent)!important;outline-offset:5px!important}
 html[data-nagi-composer-frame] [data-nagi-layout-composer-layer]{background:transparent!important;box-shadow:none!important;border:0!important;outline:none!important;color:inherit!important}
 html[data-nagi-composer-frame] #prompt-textarea{font:var(--nagi-ui-font-size)/1.6 var(--nagi-ui-font)!important;caret-color:var(--nagi-accent)!important}
-html[data-nagi-composer-frame] [data-nagi-layout-composer] button[data-testid=send-button]{background:var(--nagi-accent)!important;color:#00131d!important;border-radius:5px!important}
+html[data-nagi-composer-frame] [data-nagi-layout-composer] button[data-testid=send-button]{background:var(--nagi-accent)!important;color:var(--nagi-accent-foreground,#00131d)!important;border-radius:5px!important}
 @media(max-width:600px){html[data-nagi-layout=network]{--nagi-avatar-size:40px!important;--nagi-message-gap:16px!important}}
 `;
     document.head.append(this.style);
@@ -35,8 +36,10 @@ html[data-nagi-composer-frame] [data-nagi-layout-composer] button[data-testid=se
     );
     for (const [key, value] of Object.entries({
       accent: s.layout.accent,
+      "accent-foreground":accentForeground(s.layout.accent),
+      "avatar-rendering":s.layout.avatarRendering==='pixel'?'pixelated':s.layout.avatarRendering==='smooth'?'smooth':'auto',
       "avatar-size": `${s.layout.avatarSize}px`,
-      "message-gap": `${s.layout.messageGap}px`,
+      "message-gap": `${s.layout.density==='compact'?Math.min(s.layout.messageGap,12):s.layout.messageGap}px`,
     }))
       root.style.setProperty(`--nagi-${key}`, value);
     if (!active) {
@@ -73,7 +76,7 @@ html[data-nagi-composer-frame] [data-nagi-layout-composer] button[data-testid=se
       "data-nagi-composer-frame",
     ])
       document.documentElement.removeAttribute(attr);
-    for (const name of ["accent", "avatar-size", "message-gap"])
+    for (const name of ["accent", "accent-foreground", "avatar-rendering", "avatar-size", "message-gap"])
       document.documentElement.style.removeProperty(`--nagi-${name}`);
   }
 }

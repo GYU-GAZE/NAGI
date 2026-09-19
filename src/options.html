@@ -8,9 +8,9 @@
       body {
         margin: 32px auto;
         max-width: 780px;
-        background: #0e1623;
-        color: #dce4f1;
-        font: 14px system-ui;
+        background: var(--nagi-ui-bg,#0e1623);
+        color: var(--nagi-ui-text,#dce4f1);
+        font: 14px var(--nagi-ui-font,system-ui);
       }
       header {
         padding: 0 14px;
@@ -21,13 +21,13 @@
         font: 600 25px monospace;
       }
       p {
-        color: #aabbd3;
+        color: var(--nagi-ui-muted,#aabbd3);
       }
       #app {
         display: block;
         border: 1px solid #35445f;
         border-radius: 10px;
-        background: #182131;
+        background: var(--nagi-ui-panel,#182131);
       }
     </style>
   </head>

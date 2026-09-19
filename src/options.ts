@@ -1,3 +1,4 @@
+import { applyUITheme } from "./ui/theme";
 import { ExtensionClient } from "./shared/platform";
 import { SettingsUI } from "./ui/settings";
 import { uiCSS, el } from "./ui/dom";
@@ -10,10 +11,12 @@ const client = new ExtensionClient();
 void client
   .state()
   .then((state) => {
+    applyUITheme(document.documentElement,state.settings);
+    applyUITheme(host,state.settings);
     new SettingsUI(root, {
       client,
       state: () => state,
-      refresh: (s) => (state = s),
+      refresh: (s) => {state=s;applyUITheme(document.documentElement,s.settings);applyUITheme(host,s.settings);},
     }).render();
   })
   .catch((e) => root.append(el("p", String(e), "error")));

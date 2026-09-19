@@ -62,6 +62,7 @@ export function validateSettings(s: Settings) {
   const l = s.layout;
   if (!l || !["network", "compact"].includes(l.variant))
     fail("Layout inválido.");
+  if(!['auto','pixel','smooth'].includes(l.avatarRendering)||!['expanded','compact'].includes(l.brand)||!['comfortable','compact'].includes(l.density))fail('Opção de aparência inválida.');
   for (const key of [
     "contextBar",
     "promptNavigator",
@@ -166,6 +167,7 @@ export function migrate(value: unknown): State {
   if (!s.settings || typeof s.settings !== "object")
     fail("Configurações inválidas.");
   if (s.settings.layout === undefined) s.settings.layout = { ...defaultLayout };
+  for(const key of ['avatarRendering','brand','density'] as const)if(s.settings.layout[key]===undefined)(s.settings.layout as any)[key]=defaultLayout[key];
   if (s.settings.performanceMode === undefined) s.settings.performanceMode = s.settings.performance ? "safe" : "off";
   // Appearance is intrinsic to enabled nAGI; discard the retired opt-in flag.
   delete (s.settings as Settings & { appearance?: unknown }).appearance;

@@ -11,6 +11,9 @@ export interface Theme {
 }
 export interface LayoutSettings {
   variant: "network" | "compact";
+  avatarRendering: "auto" | "pixel" | "smooth";
+  brand: "expanded" | "compact";
+  density: "comfortable" | "compact";
   contextBar: boolean;
   promptNavigator: boolean;
   messageCards: boolean;
@@ -26,6 +29,9 @@ export interface LayoutSettings {
 }
 export const defaultLayout: LayoutSettings = {
   variant: "network",
+  avatarRendering: "auto",
+  brand: "compact",
+  density: "comfortable",
   contextBar: true,
   promptNavigator: true,
   messageCards: true,

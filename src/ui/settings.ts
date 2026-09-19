@@ -1,3 +1,4 @@
+import { applyUITheme } from "./theme";
 import { parseBackup, MAX_BACKUP_BYTES, type Backup } from "../conversation/backup";
 import { downloadText } from "./download";
 import { el, button, field, input, select, checkbox, note } from "./dom";
@@ -36,6 +37,7 @@ export class SettingsUI {
   ) {}
   render(page = this.page) {
     this.page = page;
+    applyUITheme(this.root,this.ctx.state().settings);
     this.root.replaceChildren();
     const tabs = el("div", undefined, "tabs");
     for (const name of [
@@ -77,6 +79,7 @@ export class SettingsUI {
   private async settings(patch: Partial<Settings>) {
     const s = await this.ctx.client.mutate({ type: "settings", patch });
     this.ctx.refresh(s);
+    applyUITheme(this.root,s.settings);
   }
   private backup() {
     const file=input('', 'file');file.accept='.json,application/json';
@@ -242,6 +245,11 @@ export class SettingsUI {
         "Cada parte pode ser ligada ou desligada separadamente. A aparência da conta e o conteúdo das conversas não são alterados.",
       ),
     );
+    for(const [key,label,options] of [
+      ['avatarRendering','Renderização do avatar',[['auto','Auto'],['pixel','Pixel Art'],['smooth','Smooth']]],
+      ['brand','Marca',[['compact','Compacta'],['expanded','Expandida']]],
+      ['density','Densidade das mensagens',[['comfortable','Confortável'],['compact','Compacta']]],
+    ] as const){const control=select(options.map(([v,n])=>[v,n]),l[key]);control.onchange=()=>void this.run(()=>this.settings({layout:{...this.ctx.state().settings.layout,[key]:control.value}}));this.body.append(field(label,control));}
     const variant = select(
       [
         ["network", "Network · referência visual"],
@@ -249,6 +257,7 @@ export class SettingsUI {
       ],
       l.variant,
     );
+    variant.setAttribute("aria-label","Estrutura");
     variant.onchange = () =>
       void this.run(() =>
         this.settings({
@@ -493,6 +502,7 @@ export class SettingsUI {
               },
             });
             this.ctx.refresh(s);
+    applyUITheme(this.root,s.settings);
             this.render();
           }),
       ),
@@ -698,6 +708,7 @@ export class SettingsUI {
               expectedVersion: original.version,
             });
             this.ctx.refresh(s);
+    applyUITheme(this.root,s.settings);
             this.render();
           }),
       ),

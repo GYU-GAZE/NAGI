@@ -1,3 +1,5 @@
+import type { Settings } from "../shared/model";
+import { applyUITheme } from "./theme";
 import { uiCSS } from "./dom";
 
 /** Separate browsing context: native document/window key handlers cannot see editing events.
@@ -22,7 +24,7 @@ export class IsolatedPanel {
     );
     this.frame.setAttribute("referrerpolicy", "no-referrer");
     this.frame.style.cssText =
-      "position:fixed;z-index:2147483601;display:none;border:1px solid #40506b;border-radius:10px;background:#182131;box-shadow:0 15px 50px #0005;color-scheme:dark;";
+      "position:fixed;z-index:2147483601;display:none;border:1px solid var(--nagi-ui-muted,#40506b);border-radius:10px;background:var(--nagi-ui-panel,#182131);box-shadow:0 15px 50px #0005;color-scheme:dark;";
     this.frame.hidden = true;
     document.body.append(this.frame);
     const doc = this.frame.contentDocument;
@@ -39,8 +41,8 @@ export class IsolatedPanel {
       "default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'";
     const style = doc.createElement("style");
     style.textContent = `${uiCSS}
-:root{color-scheme:dark;font:13px/1.45 system-ui,sans-serif;color:#dce4f1;--accent:#b8d0fa}
-html,body{margin:0;padding:0;background:#182131;overflow:hidden}
+:root{font:13px/1.45 var(--nagi-ui-font,system-ui);color:var(--nagi-ui-text,#dce4f1)}
+html,body{margin:0;padding:0;background:var(--nagi-ui-panel,#182131);overflow:hidden}
 .panel{width:100%;margin:0;border:0;border-radius:0;box-shadow:none}
 .body{max-height:var(--nagi-panel-body-height,65vh)}
 `;
@@ -71,6 +73,7 @@ html,body{margin:0;padding:0;background:#182131;overflow:hidden}
     });
     window.addEventListener("resize", this.onResize);
   }
+  theme(settings:Settings){applyUITheme(this.frame,settings);const root=this.frame.contentDocument?.documentElement;if(root)applyUITheme(root,settings);}
   place(native: boolean) {
     this.native = native;
     this.resize();
@@ -87,7 +90,8 @@ html,body{margin:0;padding:0;background:#182131;overflow:hidden}
     this.frame.style.display = "none";
   }
   resize() {
-    const width = Math.min(650, Math.max(240, window.innerWidth - 24));
+    const preferred=Number(this.frame.dataset.nagiWidth)||650;
+    const width = Math.min(preferred, Math.max(240, window.innerWidth - 24));
     const integrated = document.documentElement.hasAttribute(
       "data-nagi-header-active",
     );

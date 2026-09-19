@@ -348,7 +348,7 @@ test("layout settings persist module toggles, keep editing isolated and restore 
     grid.click();
     await tick();
     assert.equal((await f.client.state()).settings.layout.grid, false);
-    const variant = f.panel.querySelector<HTMLSelectElement>("select")!;
+    const variant = f.panel.querySelector<HTMLSelectElement>('select[aria-label="Estrutura"]')!;
     variant.value = "compact";
     variant.dispatchEvent(new f.dom.window.Event("change", { bubbles: true }));
     await tick();
