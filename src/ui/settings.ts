@@ -1,3 +1,5 @@
+import { parseBackup, MAX_BACKUP_BYTES, type Backup } from "../conversation/backup";
+import { downloadText } from "./download";
 import { el, button, field, input, select, checkbox, note } from "./dom";
 import {
   presets,
@@ -16,6 +18,7 @@ import { validImage } from "../shared/validation";
 import { downloadDiagnosticReport } from "../features/diagnostics";
 export interface SettingsContext {
   client: Client;
+  flushIndex?(): Promise<void>;
   state(): State;
   refresh(s: State): void;
   snapshot?(): Snapshot;
@@ -41,6 +44,7 @@ export class SettingsUI {
       "Layout",
       "Personas",
       "Chains",
+      "Backup",
       "Diagnóstico",
     ]) {
       const b = button(name, () => this.render(name));
@@ -51,6 +55,7 @@ export class SettingsUI {
     this.status = el("p", "", "status");
     this.status.setAttribute("role", "status");
     this.root.append(tabs, this.body, this.status);
+    if (page === "Backup") this.backup();
     if (page === "Geral") this.general();
     if (page === "Aparência") this.appearance();
     if (page === "Layout") this.layout();
@@ -72,6 +77,24 @@ export class SettingsUI {
   private async settings(patch: Partial<Settings>) {
     const s = await this.ctx.client.mutate({ type: "settings", patch });
     this.ctx.refresh(s);
+  }
+  private backup() {
+    const file=input('', 'file');file.accept='.json,application/json';
+    const preview=el('section');
+    this.body.append(el('h2','Backup local'),note('Inclui configurações, Personas, Chains, avatares, mensagens indexadas, favoritos e notas. O arquivo contém o texto das conversas.'),
+      button('Exportar nAGI Backup',()=>void this.run(async()=>{await this.ctx.flushIndex?.();const backup=await this.ctx.client.request<Backup>('backup.export');downloadText('nagi-backup.json',JSON.stringify(backup));})),
+      button('Exportar cópia anterior à última importação',()=>void this.run(async()=>{const backup=await this.ctx.client.request<Backup>('backup.recovery');downloadText('nagi-recovery.json',JSON.stringify(backup));})),
+      field('Importar nAGI Backup',file),preview);
+    file.onchange=()=>void this.run(async()=>{
+      preview.replaceChildren();const selected=file.files?.[0];if(!selected)return;
+      if(selected.size>MAX_BACKUP_BYTES)throw new Error('Backup excede 100 MB');
+      const backup=parseBackup(await selected.text()),expectedRevision=this.ctx.state().revision;
+      preview.append(note(`${backup.conversations.messages.length} mensagens · ${backup.conversations.annotations.length} anotações · ${backup.state.personas.length} Personas · ${backup.state.chains.length} Chains`),
+        note('A importação substitui os dados locais. Uma cópia completa do estado anterior ficará disponível para exportação e recuperação.'),
+        button('Importar e preservar cópia anterior',()=>void this.run(async()=>{
+          const state=await this.ctx.client.request<State>('backup.import',{backup,expectedRevision});this.ctx.refresh(state);preview.replaceChildren(note('Importado. Reabra os painéis de conversas para consultar o índice restaurado.'));
+        })));
+    });
   }
   private general() {
     const s = this.ctx.state().settings;

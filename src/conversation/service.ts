@@ -11,7 +11,12 @@ export class ConversationService {
  private timer?: ReturnType<typeof setTimeout>;
  private stopped=false;
  private ready=false;
- constructor(private client:Client) {}
+ constructor(private client:Client,private generation=0) {}
+ reset(generation:number) {
+  if(generation===this.generation)return;
+  clearTimeout(this.timer);this.generation=generation;this.epoch++;this.ready=false;
+  const id=this.index.conversationId;this.index=new ConversationIndex('reset');this.update(id==='draft'?null:id);
+ }
  subscribe(fn:()=>void) {this.listeners.add(fn);return ()=>this.listeners.delete(fn);}
  private emit() {for(const f of this.listeners) f();}
  update(id:string|null) {
@@ -38,11 +43,11 @@ export class ConversationService {
   clearTimeout(this.timer);const index=this.index;
   if(index.conversationId==='draft')return;
   const messages=index.drain();if(!messages.length)return;
-  try {await this.client.request('index.write',{messages});this.error='';} catch(e) {index.retry(messages);this.error=String(e);this.emit();}
+  try {await this.client.request('index.write',{messages,generation:this.generation});this.error='';} catch(e) {index.retry(messages);this.error=String(e);this.emit();}
  }
  async annotate(id:string,patch:Partial<Pick<Annotation,'bookmarked'|'labels'|'note'>>) {
   const annotation=this.index.annotate(id,patch);this.emit();
-  try {await this.client.request('index.write',{messages:[],annotations:[annotation]});this.error='';}catch(e){this.error=String(e);this.emit();throw e;}
+  try {await this.client.request('index.write',{messages:[],annotations:[annotation],generation:this.generation});this.error='';}catch(e){this.error=String(e);this.emit();throw e;}
  }
  preference<T>(key:string,value?:T) {return this.client.request<T|undefined>('index.preference',{key,value});}
  dispose() {this.stopped=true;this.epoch++;void this.flush();clearTimeout(this.timer);this.registry.dispose();this.listeners.clear();}

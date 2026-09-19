@@ -1,3 +1,5 @@
+import { readableConversation } from "../conversation/backup";
+import { downloadText } from "./download";
 import { handoff, type Continuation } from "../conversation/handoff";
 import { renderPalette, type PaletteCommand } from "./command-palette";
 import { ConversationPanel } from "./conversation-panel";
@@ -461,6 +463,8 @@ export class Shell {
   }
   private commands():PaletteCommand[] {
     const commands:PaletteCommand[] = [
+      {id:'backup',label:'Backup / importar / exportar nAGI',run:()=>{this.close();this.open('settings');new SettingsUI(this.panel.querySelector<HTMLElement>('.body')!,this.ctx).render('Backup');}},
+      {id:'export-conversation',label:'Exportar conversa indexada como Markdown',run:()=>{if(this.ctx.conversations)downloadText('nagi-conversation.md',readableConversation(this.ctx.conversations.index),'text/markdown');}},
       ...[["prompts","Navigator"],["search","Buscar na conversa"],["outline","Outline"],["bookmarks","Favoritos, etiquetas e notas"],["tree","Árvore observada"],["recent","Chats recentes"],["pinned","Chats pinnados"],["projects","Projects"],["chains","Chains / continuar conversa"],["answer","Selecionar Persona"],["settings","Configurações e aparência"]].map(([id,label])=>({id,label,run:()=>{this.close();this.open(id);}})),
       {id:"expand",label:"Expandir todas as mensagens",run:()=>{this.conversationPanel?.focus.expandAll();this.close();}},
       {id:"sidebar",label:"Mostrar navegação original",run:()=>{void this.ctx.client.mutate({type:"settings",patch:{hideSidebar:false}}).then(s=>this.ctx.refresh(s));this.close();}},

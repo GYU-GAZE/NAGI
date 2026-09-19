@@ -89,6 +89,7 @@ export interface Chain {
 }
 export interface State {
   schema: 1;
+  indexGeneration: number;
   revision: number;
   settings: Settings;
   personas: Persona[];
@@ -165,6 +166,7 @@ export const presets: Record<string, Theme> = {
 export function initialState(): State {
   return {
     schema: 1,
+    indexGeneration: 0,
     revision: 0,
     settings: {
       enabled: true,

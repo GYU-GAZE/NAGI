@@ -38,7 +38,7 @@ export class ExtensionClient implements Client {
       area: string,
     ) => {
       if (area === "local" && changes.nagi?.newValue)
-        fn(migrate(changes.nagi.newValue));
+        void this.state().then(fn).catch(() => {});
     };
     chrome.storage.onChanged.addListener(handler);
     return () => chrome.storage.onChanged.removeListener(handler);

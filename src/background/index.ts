@@ -1,3 +1,4 @@
+import { StateVault } from "./state-vault";
 import { validateContinuation } from "../conversation/handoff";
 import { ConversationStore } from "../conversation/storage";
 const conversations = new ConversationStore();
@@ -9,8 +10,9 @@ const area = (storage: chrome.storage.StorageArea): KV => ({
     await storage.set({ [key]: value });
   },
 });
+const vault = new StateVault(conversations,area(chrome.storage.local));
 const coordinator = new Coordinator(
-  area(chrome.storage.local),
+  vault,
   area(chrome.storage.session),
 );
 chrome.runtime.onMessage.addListener((m, sender, sendResponse) => {
@@ -35,9 +37,20 @@ chrome.runtime.onMessage.addListener((m, sender, sendResponse) => {
       case "index.load":
         if (typeof m.conversationId !== "string" || m.conversationId.length > 200) throw new Error("Conversa inválida");
         return conversations.load(m.conversationId);
-      case "index.write": return conversations.write(m.messages, m.annotations ?? []);
+      case "index.write": return coordinator.atomic(async()=> {
+        const state=await vault.get("nagi") as import("../shared/model").State;
+        if(m.generation!==state.indexGeneration)throw new Error("Estado mudou; recarregue a conversa antes de salvar o índice");
+        return conversations.write(m.messages,m.annotations??[]);
+      });
       case "index.preference": return conversations.preference(m.key, m.value);
       case "index.export": return conversations.dump();
+      case "backup.export": return coordinator.atomic(async()=>{await vault.get('nagi');return conversations.backup();});
+      case "backup.recovery": return coordinator.atomic(()=>conversations.recoveryBackup());
+      case "backup.import": return coordinator.atomic(async()=>{
+        const current=await vault.get('nagi') as import('../shared/model').State;
+        if(m.expectedRevision!==current.revision)throw new Error('Dados mudaram em outra aba. Reabra a importação.');
+        const state=await conversations.importBackup(m.backup,current.revision,current.indexGeneration);await vault.notify(state);return state;
+      });
       case "continuation": {
         if(!isChat) throw new Error("Aba indisponível");
         const key=`continuation:${tabId}`;

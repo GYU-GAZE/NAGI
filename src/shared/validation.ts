@@ -112,7 +112,7 @@ function validatePersona(p: Persona) {
   if (
     !Number.isInteger(p.version) ||
     p.version < 1 ||
-    !Array.isArray(p.history)
+    !Array.isArray(p.history) || p.history.length > 1000
   )
     fail("Versao de persona invalida.");
   for (const h of p.history) {
@@ -138,6 +138,8 @@ function validateChain(c: Chain, s: State) {
     )
       fail("Link de conversa invalido.");
     if (ids.has(v.id)) fail("Conversa duplicada na Chain.");
+    if(v.personaId!==undefined&&!s.personas.some(p=>p.id===v.personaId))fail('Persona da sessão não existe.');
+    if(v.personaVersion!==undefined&&(!Number.isInteger(v.personaVersion)||v.personaVersion<1))fail('Versão da Persona inválida.');
     ids.add(v.id);
   }
   if (c.currentSession !== null && !ids.has(c.currentSession))
@@ -160,6 +162,7 @@ export function migrate(value: unknown): State {
       "Formato de dados desconhecido. Dados preservados; atualize a extensao.",
     );
   const s = structuredClone(value) as State;
+  if(s.indexGeneration===undefined)s.indexGeneration=0;
   if (!s.settings || typeof s.settings !== "object")
     fail("Configurações inválidas.");
   if (s.settings.layout === undefined) s.settings.layout = { ...defaultLayout };
@@ -171,6 +174,7 @@ export function migrate(value: unknown): State {
 }
 export function validateState(s: State) {
   if (
+    !Number.isSafeInteger(s.indexGeneration) || s.indexGeneration < 0 ||
     !Number.isInteger(s.revision) ||
     s.revision < 0 ||
     !Array.isArray(s.personas) ||

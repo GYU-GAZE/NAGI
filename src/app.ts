@@ -30,7 +30,7 @@ export async function startApp(client: Client) {
   let selectionReady = false;
   let continuation:Continuation|null=null, continuationHome=false, continuationSent=false, continuationInserted=false, continuationBusy=false;
   const observeSend=(event:Event)=>{if(!event.defaultPrevented&&continuationHome&&adapter.isSendEvent(event))continuationSent=true;};
-  const conversations = new ConversationService(client);
+  const conversations = new ConversationService(client,state.indexGeneration);
   const adapter = new DOMChatGPTAdapter();
   const appearance = new Appearance();
   const optimizer = new TurnOptimizer();
@@ -48,6 +48,7 @@ export async function startApp(client: Client) {
     }
   };
   const refresh = (s: State) => {
+    conversations.reset(s.indexGeneration);
     current = s;
     apply();
   };
@@ -89,6 +90,7 @@ export async function startApp(client: Client) {
   });
   shell = new Shell({
     conversations,
+    flushIndex: () => conversations.flush(),
     client,
     state: () => current,
     refresh,
