@@ -1,3 +1,4 @@
+import { resolveMessageGroups } from "./messages";
 /** Only public DOM. No React state, internal endpoints or copied click handlers. */
 const headerSelector =
   '#page-header,header,[role="banner"],[data-testid="conversation-header"],[data-testid="chat-header"]';
@@ -25,7 +26,29 @@ export function headerAction(
     return "menu";
   return null;
 }
-function safeHeader(node: HTMLElement) {
+function safeHeader(node: HTMLElement, groups: HTMLElement[]) {
+  if (groups.some((group) => group.contains(node))) return false;
+  if (
+    [...node.querySelectorAll<HTMLElement>("button,[role=button]")].some(
+      (control) => {
+        const hook = control.getAttribute("data-testid") ?? "";
+        const label =
+          control.getAttribute("aria-label") ??
+          control.getAttribute("title") ??
+          control.textContent ??
+          "";
+        return (
+          /(?:copy|good-response|bad-response|regenerate)-.*(?:button|action)/i.test(
+            hook,
+          ) ||
+          /^(?:copy(?: response| message)?|copiar(?: resposta| mensagem)?|good response|bad response|thumbs up|thumbs down|regenerate|regenerar)$/i.test(
+            label.trim(),
+          )
+        );
+      },
+    )
+  )
+    return false;
   return (
     !node.matches("html,body") &&
     !node.closest(`${excluded},[hidden],[aria-hidden="true"]`) &&
@@ -38,12 +61,13 @@ function topStrip(node: HTMLElement) {
   return r.top >= -2 && r.top < 96 && r.height <= 160 && r.width >= 240;
 }
 export function resolveHeader(doc: Document = document): HTMLElement | null {
+  const groups = resolveMessageGroups(doc).map((group) => group.envelope);
   const integrated = doc.querySelector<HTMLElement>(
     "[data-nagi-context-header]",
   );
-  if (integrated && safeHeader(integrated)) return integrated;
+  if (integrated && safeHeader(integrated, groups)) return integrated;
   const known = [...doc.querySelectorAll<HTMLElement>(headerSelector)].find(
-    (node) => safeHeader(node) && topStrip(node),
+    (node) => safeHeader(node, groups) && topStrip(node),
   );
   if (known) return known;
   // Work may use a plain div. A Share action plus another live control in a
@@ -58,7 +82,7 @@ export function resolveHeader(doc: Document = document): HTMLElement | null {
       parent && depth < 8;
       depth++, parent = parent.parentElement
     ) {
-      if (!safeHeader(parent)) break;
+      if (!safeHeader(parent, groups)) break;
       if (!topStrip(parent)) continue;
       const r = parent.getBoundingClientRect();
       if (r.width < Math.min(600, (doc.defaultView?.innerWidth ?? 1000) * 0.55))

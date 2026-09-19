@@ -1,4 +1,4 @@
-# Layout Network · 0.2.0
+# Layout Network · 0.2.1
 
 ![Referência visual fornecida pelo usuário](reference-network.png)
 
@@ -13,6 +13,7 @@ Implementação estrutural da referência enviada pelo usuário: barra de ferram
 | Ferramentas e coordenação de painéis | `src/ui/shell.ts`, `src/ui/network-css.ts`, `src/ui/icons.ts` | `navigation`, `layout.variant` |
 | Título, projeto, Work, Chain, Persona e sessões vizinhas | `src/ui/context-bar.ts` | `layout.contextBar` |
 | Posicionamento de Share, More e Files and Sources reais | `src/features/context-header.ts`, `src/adapter/header.ts` | Automático no modo Network/topbar |
+| Painel nativo de arquivos/fontes abaixo das barras | `src/features/auxiliary-panels.ts` | Automático no modo Network/topbar |
 | Navegação e lista de prompts carregados | `src/features/prompt-navigator.ts` | `layout.promptNavigator` |
 | Identificação semântica de mensagens | `src/adapter/messages.ts` | Hooks centralizados, sem inferir papéis pelo texto da conversa |
 | Cards, nome e retrato de cada lado | `src/features/message-layout.ts` | `messageCards`, `messageAvatars`, `messageNames`, `avatarSize`, `messageGap` |
@@ -22,7 +23,9 @@ Implementação estrutural da referência enviada pelo usuário: barra de ferram
 
 ## Configuração
 
-Em **Configurações → Layout**, `Aplicar visual da referência` aplica o preset Network, largura de 1040 px, barra superior, sidebar oculta e todos os módulos visuais. Preserva o nome e avatar local do usuário. Alternativamente, mantenha as cores anteriores e habilite/desabilite cada módulo.
+Network e suas cores são o padrão de instalações novas. Configurações salvas continuam preservadas. No modo Network, fonte, cores e largura sempre vêm de `settings.theme`, independentemente da aplicação do tema à interface nativa.
+
+Em **Configurações → Layout**, `Restaurar visual padrão` aplica o preset Network, largura de 1040 px, barra superior, sidebar oculta e todos os módulos visuais. Preserva o nome e avatar local do usuário. Alternativamente, mantenha as cores anteriores e habilite/desabilite cada módulo.
 
 Os campos da estrutura `settings.layout` são validados. `variant` aceita `network` e `compact`. O modo compacto mantém a barra anterior; os módulos de aparência Network são retirados. A navegação original continua independente, assim como o tema básico e a otimização de turnos. Pausar retira marcas, retratos e controles do layout e restaura a interface nativa.
 
@@ -52,6 +55,14 @@ Não se aceita CSS/JS arbitrário nas configurações. Isso mantém dimensões e
 
 ## Evidência e limitações
 
-A 0.1.1 foi confirmada pelo usuário em Firefox/Work. Esta estrutura Network foi testada com fixtures DOM, incluindo uma variante sem os articles de conversa antigos. Os testes cobrem conservação de nós e handlers, rascunho, privacidade, seleção de prompts, troca de módulo e restauração. JSDOM não renderiza o layout real: dimensões dos testes são simuladas. Não houve inspeção autenticada nem comparação visual desta revisão no navegador do usuário.
+A 0.1.1 e a composição geral da 0.2.0 foram confirmadas pelo usuário em Firefox/Work. As correções da 0.2.1 ainda precisam de confirmação visual nesse frontend. Esta estrutura Network foi testada com fixtures DOM, incluindo uma variante sem os articles de conversa antigos. Os testes cobrem conservação de nós e handlers, rascunho, privacidade, seleção de prompts, troca de módulo e restauração. JSDOM não renderiza o layout real: dimensões dos testes são simuladas. Não houve inspeção autenticada nem comparação visual desta revisão no navegador do usuário.
 
-O diagnóstico formato 3 registra configurações estruturais, contagem de papéis, cards e controles, além de amostras de geometria/estilos sem texto. Se Work usar hooks semânticos diferentes, `adapter/messages.ts` pode precisar de novos seletores. Não se classifica uma mensagem como usuário/assistente pela prosa ou cor de uma bolha.
+O diagnóstico formato 4 registra configurações estruturais, contagem de papéis, cards e controles, além de amostras de geometria/estilos sem texto. Se Work usar hooks semânticos diferentes, `adapter/messages.ts` pode precisar de novos seletores. Não se classifica uma mensagem como usuário/assistente pela prosa ou cor de uma bolha.
+
+## Agrupamento e posicionamento · 0.2.1
+
+`resolveMessageGroups` reconhece wrappers de uma única mensagem, incluindo variantes Work com section/div. O envelope externo contém raciocínio, mensagem e ações; wrappers intermediários recebem a mesma largura e os acessórios recebem a fonte do tema. Mensagens e controles não são movidos. A seleção para no main, em regiões funcionais ou em um ancestral com mais de uma mensagem.
+
+O detector de cabeçalho exclui envelopes completos de mensagens e barras com ações de feedback, inclusive se já marcadas por uma detecção antiga. O docking considera ancestrais que estabelecem um bloco para posicionamento fixo e recalcula as coordenadas durante rolagem. O painel direito é medido sem seu deslocamento anterior, evitando acumulação; o deslocamento e as marcas são removidos ao desativar.
+
+A busca externa do composer sobe até 32 ancestrais, interrompendo antes de main/body ou qualquer região que contenha mensagens. Apenas decorações vazias e não interativas ao longo desse caminho são normalizadas. Não se limpa todo o conteúdo da página para remover uma faixa de fundo.

@@ -1,6 +1,7 @@
 import { el, button, select, checkbox, note, uiCSS } from "./dom";
 import { SettingsUI, type SettingsContext } from "./settings";
 import { IsolatedPanel } from "./isolated-panel";
+import { AuxiliaryPanels } from "../features/auxiliary-panels";
 import { ContextHeaderBridge } from "../features/context-header";
 import { PromptNavigator } from "../features/prompt-navigator";
 import { ContextBar } from "./context-bar";
@@ -34,6 +35,7 @@ export class Shell {
   private currentPhase: Phase = "unknown";
   private header = new HeaderIntegration();
   private nativeContext = new ContextHeaderBridge();
+  private auxiliaryPanels = new AuxiliaryPanels();
   private prompts = new PromptNavigator(() => this.open("prompts"));
   private context = new ContextBar(
     (kind) => this.open(kind),
@@ -251,6 +253,7 @@ export class Shell {
       );
       this.host.toggleAttribute("data-nagi-header-shell", integrated);
     }
+    this.auxiliaryPanels.apply(network);
     this.isolated.resize();
   }
   update(snapshot: Snapshot) {
@@ -512,6 +515,7 @@ export class Shell {
     window.removeEventListener("resize", this.onResize);
     this.resizeObserver?.disconnect();
     this.nativeContext.dispose();
+    this.auxiliaryPanels.dispose();
     this.prompts.dispose();
     document.documentElement.style.removeProperty("--nagi-shell-height");
     this.header.dispose();

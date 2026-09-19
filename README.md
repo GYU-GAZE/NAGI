@@ -1,8 +1,17 @@
-# nAGI · 0.2.0
+# nAGI · 0.2.1
 
 Extensão modular para o **ChatGPT Web oficial**. Sem API key, backend próprio, telemetria ou alteração automática das instruções da conta.
 
-**Este pacote é experimental.** O usuário confirmou as correções de digitação, sidebar e composer da 0.1.1 em seu ChatGPT Work/Firefox e enviou print e diagnóstico. O novo layout Network da 0.2.0 passa pelos testes locais, mas ainda precisa de confirmação visual nesse frontend. O ambiente de desenvolvimento não teve acesso ao ChatGPT autenticado; não há medição real de ganho de renderização.
+**Este pacote é experimental.** O usuário aprovou o layout Network da 0.2.0 e forneceu print/diagnóstico do ChatGPT Work/Firefox. A 0.2.1 corrige os problemas estruturais desse retorno, com regressões locais. A confirmação visual dessas correções no frontend autenticado continua pendente; não há medição real de ganho de renderização.
+
+## Atualização 0.2.1 · padrão Network e correções no Work
+
+- Instalações novas começam com o layout Network, tema azul/ciano da referência, fonte monoespaçada, largura de 1040 px e sidebar oculta. Configurações salvas são preservadas; **Layout → Restaurar visual padrão** reaplica o conjunto.
+- Raciocínio/“Worked for” e ações abaixo da resposta acompanham a coluna da mensagem e sua fonte configurada. Os controles continuam sendo os nós nativos.
+- O cabeçalho não pode mais ser confundido com a barra de ações de uma resposta. Share, More e Files and Sources são posicionados na faixa de contexto; ancestrais transformados e rolagem entram no cálculo.
+- O composer procura camadas externas além do antigo limite de oito wrappers e normaliza decorações vazias, preservando editor, rascunho, ferramentas e mensagens.
+- O painel direito de arquivos/fontes recebe deslocamento e altura disponível com base na altura medida das duas barras nAGI.
+- Diagnóstico formato 4 inclui envelopes de mensagens, acessórios, controles e painel lateral, sem texto de conversas ou rascunhos.
 
 ## Atualização 0.2.0 · layout Network modular
 
@@ -13,7 +22,7 @@ Extensão modular para o **ChatGPT Web oficial**. Sem API key, backend próprio,
 - Configurações independentes em **Layout**: cards, avatares, nomes, contexto, prompts, grade e composer, além de cor de destaque, tamanho dos avatares, espaçamento, nome e avatar do usuário.
 - Migração aditiva, mantendo os dados da instalação anterior. O modo **Compacto** mantém a estrutura anterior como alternativa.
 
-Depois de atualizar, abra **Configurações → Layout → Aplicar visual da referência** para aplicar também a paleta azul/ciano e a largura do mockup. As cores anteriores são preservadas durante a atualização até essa escolha. Configure seu nome/avatar nessa mesma aba; os retratos de resposta são os da Persona selecionada. Não são incluídas cópias dos personagens da imagem nem horários inventados.
+Na 0.2.1, a paleta azul/ciano e a largura do mockup são padrão de instalação. Em uma instalação existente, **Configurações → Layout → Restaurar visual padrão** reaplica esse conjunto; as cores salvas são preservadas até essa escolha. Configure seu nome/avatar nessa mesma aba; os retratos de resposta são os da Persona selecionada. Não são incluídas cópias dos personagens da imagem nem horários inventados.
 
 Veja [LAYOUT.md](docs/LAYOUT.md) para a divisão de módulos, tokens, comportamento e limites de detecção. As instruções das Personas continuam sem aplicação automática; esta entrega modifica estrutura, apresentação e navegação.
 
@@ -71,8 +80,8 @@ Fixe o ícone nAGI na barra do navegador. Ele oferece pausa e configurações me
 
 ## Primeiro uso
 
-- A barra superior começa ativa. O tema e a otimização começam desligados; a sidebar original permanece visível.
-- Em **Configurações → Aparência**, escolha Terminal azul, Papel ou Carvão, ou configure cores e fonte. Ative o tema em **Geral**.
+- O layout Network, a barra superior e o tema começam ativos, com a sidebar original oculta. A otimização de turnos começa desligada.
+- Em **Configurações → Aparência**, escolha Network (padrão), Terminal azul, Papel ou Carvão, ou configure cores e fonte. Network sempre usa essas escolhas; em **Geral**, a opção de tema também aplica a aparência à interface nativa.
 - Em **Personas**, crie um nome, texto de instruções e até três imagens: idle, thinking e talking. PNG, JPEG, GIF e WebP; até 256 KB e 2048 × 2048 por imagem. Os arquivos são guardados localmente.
 - Em **Answer with…**, selecione a Persona desta aba/conversa. **As instruções ainda não são aplicadas.** Uma Persona com instruções bloqueia o envio até marcar **Somente visual**. Isso envia usando as configurações atuais do ChatGPT, sem injetar outro prompt.
 - Em **Chains**, crie uma Chain e adicione a conversa aberta. As setas alteram a ordem; ● marca a sessão atual; × remove apenas o vínculo. Clique em **Salvar Chain** para gravar. Cada Chain tem Persona padrão e opção de lembrar a última Persona.

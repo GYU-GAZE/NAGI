@@ -7,6 +7,7 @@ export interface Regions {
   composerRoot: HTMLElement | null;
   composerLayers: HTMLElement[];
   composerOuter: HTMLElement[];
+  composerDecorations: HTMLElement[];
   pageSurfaces: HTMLElement[];
 }
 function own(el: Element) {
@@ -100,7 +101,7 @@ export function resolveRegions(doc: Document = document): Regions {
   let ancestor = composerRoot?.parentElement ?? null;
   for (
     let depth = 0;
-    ancestor && depth < 8;
+    ancestor && depth < 32;
     depth++, ancestor = ancestor.parentElement
   ) {
     if (
@@ -112,6 +113,35 @@ export function resolveRegions(doc: Document = document): Regions {
     )
       break;
     outer.push(ancestor);
+  }
+  const decorations: HTMLElement[] = [];
+  for (const parent of outer) {
+    for (const child of parent.children) {
+      if (
+        !(child instanceof doc.defaultView!.HTMLElement) ||
+        child.contains(composerRoot) ||
+        outer.includes(child as HTMLElement) ||
+        own(child)
+      )
+        continue;
+      const node = child as HTMLElement;
+      if (
+        node.matches(
+          "button,a,input,textarea,[contenteditable],iframe,video,audio,canvas,img,svg",
+        ) ||
+        node.textContent?.trim() ||
+        node.querySelector(
+          "button,a,input,textarea,[contenteditable],iframe,video,audio,canvas,img,svg",
+        )
+      )
+        continue;
+      const style = doc.defaultView?.getComputedStyle(node);
+      if (
+        node.getAttribute("aria-hidden") === "true" ||
+        style?.pointerEvents === "none"
+      )
+        decorations.push(node);
+    }
   }
   const surfaces: HTMLElement[] = [];
   for (let e = main, depth = 0; e && depth < 12; depth++, e = e.parentElement) {
@@ -125,6 +155,7 @@ export function resolveRegions(doc: Document = document): Regions {
     composerRoot,
     composerLayers: unique(layers),
     composerOuter: outer,
+    composerDecorations: unique(decorations),
     pageSurfaces: surfaces,
   };
 }

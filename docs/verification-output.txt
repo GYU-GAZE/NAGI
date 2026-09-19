@@ -1,82 +1,88 @@
 npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
 
-> nagi-extension@0.2.0 check
+> nagi-extension@0.2.1 check
 > npm run typecheck && npm test && npm run build
 
 npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
 
-> nagi-extension@0.2.0 typecheck
+> nagi-extension@0.2.1 typecheck
 > tsc --noEmit
 
 npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
 
-> nagi-extension@0.2.0 test
+> nagi-extension@0.2.1 test
 > node --import tsx --test tests/*.test.ts
 
-✔ full app mounts network controls, theme/performance are independent and pause restores native DOM (332.010996ms)
-✔ persona editor persists literal untrusted text and exposes instructions as unapplied (203.849268ms)
-✔ chain editor adds the open chat, stores order metadata and restores selection (132.848091ms)
-✔ editing inside options never reaches native ChatGPT keyboard handlers or its composer (92.022099ms)
-✔ shared diagnostics can be copied from isolated panel without private conversation data (179.875743ms)
-✔ layout settings persist module toggles, keep editing isolated and restore compact/native header on switch (183.120232ms)
-✔ concurrent lock acquisition has exactly one winner (8.674434ms)
-✔ lock persists through service worker reconstruction without expiry (0.456229ms)
-✔ a different tab cannot release another transaction (1.05529ms)
-✔ stale instance and stale token cannot release replacement lock (0.587716ms)
-✔ reload marks owner orphaned and never automatically releases (0.637685ms)
-✔ hello from same instance leaves ownership intact (0.434697ms)
-✔ explicit recovery checks expected token and allows next owner (3.622623ms)
-✔ generation marker and matching release operate on persisted state (0.437573ms)
-✔ serialized independent settings edits survive concurrent writes (1.874354ms)
-✔ failed transaction does not poison writer queue or storage (0.903709ms)
-✔ future/corrupt schemas never silently reset (1.400467ms)
-✔ persona edit conflict preserves newer version and instruction history (1.54901ms)
-✔ chain ordering and current session are explicit and persisted (1.179529ms)
-✔ duplicate sessions and dangling current session are rejected (0.439976ms)
-✔ concurrent stale chain edits fail instead of losing organization (1.104192ms)
-✔ deleting persona clears chain defaults without deleting chats (0.963124ms)
-✔ persona selection is isolated by both tab and route (0.502195ms)
-✔ remote avatars, SVG and malicious CSS/URLs are rejected (0.609658ms)
-✔ generation can alternate thinking and talking repeatedly (0.291606ms)
-✔ missing composer is unknown and never idle completion (0.113513ms)
-✔ transient missing stop does not signal generation completion (0.098736ms)
-✔ 0.1 state migrates additively to modular layout without losing theme, personas or chains (0.455658ms)
-✔ adapter recognizes semantic candidates, separate nav and reversible sidebar (139.814643ms)
-✔ unknown DOM yields unknown state and safe empty navigation (18.125401ms)
-✔ Shift+Enter, composing and unrelated inputs are not intercepted (14.982266ms)
-✔ instruction-bearing persona blocks original send without visual-only consent (24.232525ms)
-✔ explicit visual-only sends exactly once and keeps lock through generation (37.256117ms)
-✔ editing draft while acquiring lock aborts send and releases reservation (17.581954ms)
-✔ draft changed during queue availability check is never submitted (23.021057ms)
-✔ navigating away after generation starts holds lock instead of treating unrelated idle as completion (40.410921ms)
-✔ Work fallback resolves the shallow top bar, never conversation or right panel (91.333141ms)
-✔ native actions and popover anchors survive integration; theme and two-row sizing are independent (37.187211ms)
-✔ pause, native navigation and disposal restore the original header without stale marks (24.820034ms)
-✔ React header replacement removes marks from old nodes and integrates the replacement (13.788367ms)
-✔ header diagnostics expose action categories and geometry without titles, labels or IDs (86.302143ms)
-✔ sidebar collapse removes the entire reserved slot, history, account footer and rail, then restores it (175.702097ms)
-✔ unknown sidebar ID can be found from navigation structure without hiding chat message navigation (13.975194ms)
-✔ composer covers editor and tool wrappers, does not repaint the conversation and cleans replaced nodes (27.51828ms)
-✔ diagnostic report is allowlisted and excludes text, raw HTML, URLs and private settings/entities (73.624828ms)
-✔ message roles work without article wrappers and exclude side panels, drafts and nested duplicates (79.498504ms)
-✔ cards preserve message nodes, controls and draft; modules toggle and detached badges clean up (38.869753ms)
-✔ native share/menu/files are docked in place, anchored to the visible slot, restored on toggle and never clicked automatically (30.079635ms)
-✔ prompt navigation counts sent user messages, scrolls loaded nodes, respects reduced motion and handles route changes (19.40026ms)
-✔ context separates actual project/work/chain/persona and chain session links from prompt arrows (21.059782ms)
-✔ composer identity does not replace the editor, send node or draft and removes itself when its module is off (25.12614ms)
-✔ diagnostics include module coverage but exclude prompt previews and local user identity (181.929668ms)
-✔ header context does not infer Work from an ordinary chat title and reads explicit title/project hooks (21.714603ms)
-ℹ tests 53
+✔ full app mounts network controls, theme/performance are independent and pause restores native DOM (1188.365661ms)
+✔ persona editor persists literal untrusted text and exposes instructions as unapplied (524.90153ms)
+✔ chain editor adds the open chat, stores order metadata and restores selection (235.274447ms)
+✔ editing inside options never reaches native ChatGPT keyboard handlers or its composer (188.291934ms)
+✔ shared diagnostics can be copied from isolated panel without private conversation data (250.470272ms)
+✔ layout settings persist module toggles, keep editing isolated and restore compact/native header on switch (349.993498ms)
+✔ concurrent lock acquisition has exactly one winner (12.860643ms)
+✔ lock persists through service worker reconstruction without expiry (1.050114ms)
+✔ a different tab cannot release another transaction (1.507494ms)
+✔ stale instance and stale token cannot release replacement lock (1.214897ms)
+✔ reload marks owner orphaned and never automatically releases (1.878627ms)
+✔ hello from same instance leaves ownership intact (0.85073ms)
+✔ explicit recovery checks expected token and allows next owner (1.198167ms)
+✔ generation marker and matching release operate on persisted state (0.941445ms)
+✔ serialized independent settings edits survive concurrent writes (3.610031ms)
+✔ failed transaction does not poison writer queue or storage (1.078218ms)
+✔ future/corrupt schemas never silently reset (2.299059ms)
+✔ persona edit conflict preserves newer version and instruction history (4.358773ms)
+✔ chain ordering and current session are explicit and persisted (1.733661ms)
+✔ duplicate sessions and dangling current session are rejected (0.734051ms)
+✔ concurrent stale chain edits fail instead of losing organization (2.88053ms)
+✔ deleting persona clears chain defaults without deleting chats (4.141544ms)
+✔ persona selection is isolated by both tab and route (0.69433ms)
+✔ remote avatars, SVG and malicious CSS/URLs are rejected (0.82529ms)
+✔ generation can alternate thinking and talking repeatedly (0.339101ms)
+✔ missing composer is unknown and never idle completion (0.182375ms)
+✔ transient missing stop does not signal generation completion (0.368478ms)
+✔ 0.1 state migrates additively to modular layout without losing theme, personas or chains (1.212797ms)
+✔ adapter recognizes semantic candidates, separate nav and reversible sidebar (258.419254ms)
+✔ unknown DOM yields unknown state and safe empty navigation (32.13ms)
+✔ Shift+Enter, composing and unrelated inputs are not intercepted (27.209524ms)
+✔ instruction-bearing persona blocks original send without visual-only consent (41.735286ms)
+✔ explicit visual-only sends exactly once and keeps lock through generation (95.401713ms)
+✔ editing draft while acquiring lock aborts send and releases reservation (90.177033ms)
+✔ draft changed during queue availability check is never submitted (205.792441ms)
+✔ navigating away after generation starts holds lock instead of treating unrelated idle as completion (182.955954ms)
+✔ Work fallback resolves the shallow top bar, never conversation or right panel (270.56892ms)
+✔ native actions and popover anchors survive integration; theme and two-row sizing are independent (211.54547ms)
+✔ pause, native navigation and disposal restore the original header without stale marks (81.277476ms)
+✔ React header replacement removes marks from old nodes and integrates the replacement (73.710037ms)
+✔ header diagnostics expose action categories and geometry without titles, labels or IDs (277.088505ms)
+✔ sidebar collapse removes the entire reserved slot, history, account footer and rail, then restores it (517.79062ms)
+✔ unknown sidebar ID can be found from navigation structure without hiding chat message navigation (27.345226ms)
+✔ composer covers editor and tool wrappers, does not repaint the conversation and cleans replaced nodes (109.376011ms)
+✔ diagnostic report is allowlisted and excludes text, raw HTML, URLs and private settings/entities (224.663187ms)
+✔ message roles work without article wrappers and exclude side panels, drafts and nested duplicates (214.952247ms)
+✔ cards preserve message nodes, controls and draft; modules toggle and detached badges clean up (222.63606ms)
+✔ native share/menu/files are docked in place, anchored to the visible slot, restored on toggle and never clicked automatically (298.972342ms)
+✔ prompt navigation counts sent user messages, scrolls loaded nodes, respects reduced motion and handles route changes (80.781497ms)
+✔ context separates actual project/work/chain/persona and chain session links from prompt arrows (77.132693ms)
+✔ composer identity does not replace the editor, send node or draft and removes itself when its module is off (65.142125ms)
+✔ diagnostics include module coverage but exclude prompt previews and local user identity (524.543458ms)
+✔ header context does not infer Work from an ordinary chat title and reads explicit title/project hooks (33.571179ms)
+✔ Work feedback cannot become the header, even at the top of the viewport or with a stale integration mark (425.784886ms)
+✔ Work reasoning and action siblings share the message envelope, retain handlers and restore on pause (55.46449ms)
+✔ composer cleanup reaches beyond eight wrappers without touching conversation content or the draft (171.03597ms)
+✔ right panel clears the measured shell without cumulative translation; left sidebar and native styles are preserved (50.557287ms)
+✔ header control coordinates account for a scaled and scrolled fixed containing block (58.243487ms)
+✔ new installations use Network colors and layout; updates retain saved customization (1.974177ms)
+ℹ tests 59
 ℹ suites 0
-ℹ pass 53
+ℹ pass 59
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 2220.793169
+ℹ duration_ms 6947.702372
 npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
 
-> nagi-extension@0.2.0 build
+> nagi-extension@0.2.1 build
 > node scripts/build.mjs
 
 Built dist/chromium and dist/firefox

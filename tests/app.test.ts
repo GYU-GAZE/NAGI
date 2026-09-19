@@ -127,7 +127,7 @@ test("full app mounts network controls, theme/performance are independent and pa
     );
     assert.equal(
       document.documentElement.hasAttribute("data-nagi-theme"),
-      false,
+      true,
     );
     assert.equal(
       document
@@ -340,7 +340,7 @@ test("layout settings persist module toggles, keep editing isolated and restore 
       document.querySelector("header")!.hasAttribute("data-nagi-header"),
       true,
     );
-    click(f.panel, "Aplicar visual da referência");
+    click(f.panel, "Restaurar visual padrão");
     await tick();
     const state = await f.client.state();
     assert.equal(state.settings.layout.variant, "network");

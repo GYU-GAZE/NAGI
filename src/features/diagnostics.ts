@@ -1,4 +1,5 @@
-import { resolveMessages } from "../adapter/messages";
+import { resolveAuxiliaryPanels } from "./auxiliary-panels";
+import { resolveMessageGroups } from "../adapter/messages";
 import type { State } from "../shared/model";
 import { resolveHeader, headerControls, headerAction } from "../adapter/header";
 import { VERSION } from "../shared/version";
@@ -61,6 +62,10 @@ function elementDescription(el: Element) {
       "margin",
       "overflow",
       "flex-basis",
+      "font-family",
+      "font-size",
+      "contain",
+      "content-visibility",
     ].map((k) => [k, value(k)]),
   );
   return {
@@ -103,19 +108,24 @@ function elementDescription(el: Element) {
       : [],
     hasBackgroundImage:
       !!value("background-image") && value("background-image") !== "none",
+    fixedContainerSignals: {
+      transform: value("transform") !== "none" && !!value("transform"),
+      filter: value("filter") !== "none" && !!value("filter"),
+      perspective: value("perspective") !== "none" && !!value("perspective"),
+    },
     childElementCount: el.childElementCount,
   };
 }
-function ancestors(el: Element | null) {
+function ancestors(el: Element | null, maximum = 12) {
   const list: ReturnType<typeof elementDescription>[] = [];
-  for (let depth = 0; el && depth < 12; depth++, el = el.parentElement)
+  for (let depth = 0; el && depth < maximum; depth++, el = el.parentElement)
     list.push(elementDescription(el));
   return list;
 }
 export function createDiagnosticReport(state: State, doc: Document = document) {
   const r = resolveRegions(doc);
   const header = resolveHeader(doc);
-  const messages = resolveMessages(doc);
+  const messages = resolveMessageGroups(doc);
   const win = doc.defaultView;
   const browser =
     win?.navigator.userAgent.match(/(?:Firefox|Edg|Chrome)\/[\d.]+/)?.[0] ??
@@ -126,7 +136,7 @@ export function createDiagnosticReport(state: State, doc: Document = document) {
   const root = doc.documentElement;
   return {
     format: "nagi-diagnostics",
-    formatVersion: 3,
+    formatVersion: 4,
     extensionVersion: VERSION,
     createdAt: new Date().toISOString(),
     privacy:
@@ -193,6 +203,11 @@ export function createDiagnosticReport(state: State, doc: Document = document) {
       networkLayout: root.getAttribute("data-nagi-layout") === "network",
       dockedControls: doc.querySelectorAll("[data-nagi-docked]").length,
       messageCards: doc.querySelectorAll("[data-nagi-message-card]").length,
+      messageGroups: doc.querySelectorAll("[data-nagi-message-envelope]")
+        .length,
+      messageAccessories: doc.querySelectorAll("[data-nagi-message-accessory]")
+        .length,
+      auxiliaryPanels: doc.querySelectorAll("[data-nagi-aux-panel]").length,
       promptTargets: doc.querySelectorAll("[data-nagi-prompt-target]").length,
       headerStacked: root.hasAttribute("data-nagi-header-stacked"),
       theme: root.hasAttribute("data-nagi-theme"),
@@ -218,11 +233,26 @@ export function createDiagnosticReport(state: State, doc: Document = document) {
         node: elementDescription(r.node),
         turn: elementDescription(r.turn),
       })),
+      messageGroups: messages.slice(-4).map((r) => ({
+        role: r.role,
+        envelope: elementDescription(r.envelope),
+        path: r.path.map(elementDescription),
+        accessories: r.accessories.map(elementDescription),
+      })),
+      dockedActions: [
+        ...doc.querySelectorAll<HTMLElement>("[data-nagi-docked]"),
+      ].map((e) => ({
+        kind: headerAction(e) ?? "other",
+        node: elementDescription(e),
+        ancestors: ancestors(e).slice(0, 6),
+      })),
+      auxiliaryPanels: resolveAuxiliaryPanels(doc).map(elementDescription),
+      composerDecorations: r.composerDecorations.map(elementDescription),
       headerAncestors: ancestors(header).slice(0, 5),
       headerChildren: header
         ? [...header.children].slice(0, 12).map(elementDescription)
         : [],
-      composerAncestors: ancestors(r.composer),
+      composerAncestors: ancestors(r.composer, 32),
       sidebarRoots: r.sidebar.map(elementDescription),
       sidebarAncestors: r.sidebar.map((s) => ancestors(s).slice(0, 5)),
       composerLayers: r.composerLayers.map(elementDescription),

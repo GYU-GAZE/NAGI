@@ -34,3 +34,63 @@ export function resolveMessages(doc: Document = document): MessageRegion[] {
     };
   });
 }
+
+export interface MessageGroup extends MessageRegion {
+  envelope: HTMLElement;
+  path: HTMLElement[];
+  accessories: HTMLElement[];
+}
+/** Find a complete turn even when Work uses sections/divs instead of articles. */
+export function resolveMessageGroups(doc: Document = document): MessageGroup[] {
+  const messages = resolveMessages(doc);
+  const counts = new Map<HTMLElement, number>();
+  for (const { node } of messages) {
+    for (
+      let p: HTMLElement | null = node, depth = 0;
+      p && depth < 24;
+      p = p.parentElement, depth++
+    ) {
+      counts.set(p, (counts.get(p) ?? 0) + 1);
+      if (p.matches("main,[role=main],body")) break;
+    }
+  }
+  return messages.map((message) => {
+    let envelope = message.node;
+    for (let depth = 0; depth < 20; depth++) {
+      const parent = envelope.parentElement;
+      if (
+        !parent ||
+        counts.get(parent) !== 1 ||
+        parent.matches(
+          "main,[role=main],body,html,nav,aside,form,[role=dialog],[data-nagi-owned]",
+        ) ||
+        parent.querySelector(
+          "#prompt-textarea,form,header,nav,aside,[role=banner]",
+        )
+      )
+        break;
+      envelope = parent;
+    }
+    const path: HTMLElement[] = [],
+      accessories: HTMLElement[] = [];
+    for (
+      let child = message.node;
+      child !== envelope && child.parentElement;
+      child = child.parentElement
+    ) {
+      const parent = child.parentElement;
+      path.push(parent);
+      for (const sibling of parent.children) {
+        if (
+          sibling !== child &&
+          sibling instanceof doc.defaultView!.HTMLElement &&
+          !sibling.matches(
+            "[data-nagi-owned],style,script,[hidden],input[type=hidden]",
+          )
+        )
+          accessories.push(sibling as HTMLElement);
+      }
+    }
+    return { ...message, envelope, path, accessories };
+  });
+}

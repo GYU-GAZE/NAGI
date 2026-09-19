@@ -62,3 +62,11 @@ Validação manual pendente no frontend do usuário: confirmar que não sobra fa
 A fixture `npm run demo` abre quatro mensagens e controles de cabeçalho simulados, sem conta ou envio externo. O benchmark sintético continua disponível pela sidebar. O preset Network é carregado apenas na primeira inicialização da fixture.
 
 Validação visual autenticada pendente: comparar com o mockup, testar títulos longos, sidebar aberta/fechada, janela estreita/zoom, Share/More/Files, rolagem de prompts em conversas longas, respostas com ferramentas, anexos, tabelas/código e envio/stop. Exportar diagnóstico 0.2.0 e comparar counts.userMessages/assistantMessages com o conteúdo carregado. Nenhum teste JSDOM comprova posicionamento real de CSS ou compatibilidade de novos hooks no Work.
+
+## Regressões 0.2.1
+
+59 testes passaram; TypeScript e builds Firefox/Chromium concluídos. Saída completa em `verification-output.txt`.
+
+Fixtures baseadas na estrutura do diagnóstico Work verificam exclusão de feedback da detecção de cabeçalho mesmo no topo da viewport ou com uma marca antiga; docking dos três controles reais; agrupamento de raciocínio/resposta/ações com preservação de handlers; restauração na pausa; composer com 12 camadas externas e decoração irmã, sem tocar no rascunho ou conversa; deslocamento do painel direito sem acumulação, resize e limpeza; coordenadas sob ancestral escalado e rolado; novos defaults Network e preservação das configurações salvas.
+
+O layout geral da 0.2.0 foi aprovado pelo usuário. Pendente na 0.2.1: confirmar em Firefox/Work o alinhamento de “Worked for” e feedback, a remoção da faixa preta, os três controles na faixa de contexto e a posição do painel direito. Testar a rolagem com esse painel aberto e depois pausado. As fixtures usam geometria simulada, não validam pixels renderizados.

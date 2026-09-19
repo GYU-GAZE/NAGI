@@ -84,7 +84,7 @@ export class SettingsUI {
     );
     const toggles: [keyof Settings, string][] = [
       ["enabled", "Ativar nAGI"],
-      ["appearance", "Aplicar tema"],
+      ["appearance", "Aplicar tema também à interface nativa"],
       ["personas", "Personas e trava de envio entre abas"],
       ["chains", "Conversation Chains"],
       ["showAvatar", "Mostrar avatar da Persona na barra"],
@@ -148,7 +148,7 @@ export class SettingsUI {
     this.body.append(
       el("h2", "Aparência"),
       note(
-        "Use fontes instaladas no computador. Esta versão não baixa fontes. Ative “Aplicar tema” em Geral para ver as alterações.",
+        "Use fontes instaladas no computador. Esta versão não baixa fontes. O layout Network usa as cores e a fonte definidas aqui. Em outros layouts, ative o tema em Geral.",
       ),
     );
     const preset = select(
@@ -238,7 +238,7 @@ export class SettingsUI {
     this.body.append(
       field("Estrutura", variant),
       button(
-        "Aplicar visual da referência",
+        "Restaurar visual padrão",
         () =>
           void this.run(async () => {
             await this.settings({

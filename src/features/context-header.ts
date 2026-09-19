@@ -1,11 +1,69 @@
 import { resolveHeader, headerControls, headerAction } from "../adapter/header";
 import { Marks } from "./marks";
+/** Fixed descendants can be local to transformed/contained ancestors, including scrollers. */
+export function fixedCoordinates(node: HTMLElement, x: number, y: number) {
+  for (
+    let parent = node.parentElement;
+    parent && parent !== document.documentElement;
+    parent = parent.parentElement
+  ) {
+    const s = parent.ownerDocument.defaultView!.getComputedStyle(parent);
+    const transformed = [
+      s.transform,
+      s.perspective,
+      s.filter,
+      s.getPropertyValue("backdrop-filter"),
+    ].some((v) => !!v && v !== "none");
+    if (
+      !transformed &&
+      !/(?:layout|paint|strict|content)/.test(s.contain) &&
+      !/(?:transform|perspective|filter)/.test(s.willChange) &&
+      s.contentVisibility !== "auto"
+    )
+      continue;
+    const r = parent.getBoundingClientRect();
+    const sx = parent.offsetWidth ? r.width / parent.offsetWidth : 1,
+      sy = parent.offsetHeight ? r.height / parent.offsetHeight : 1;
+    return {
+      x: (x - r.left) / (sx || 1) - parent.clientLeft + parent.scrollLeft,
+      y: (y - r.top) / (sy || 1) - parent.clientTop + parent.scrollTop,
+    };
+  }
+  return { x, y };
+}
 /** Dock live controls without reparenting them or synthesizing native input events. */
 export class ContextHeaderBridge {
   private marks = new Marks();
   private controls = new Map<HTMLElement, number>();
   private style = document.createElement("style");
   private initiallyUnstyled = new Set<HTMLElement>();
+  private slot: HTMLElement | null = null;
+  private available = 0;
+  private timer: ReturnType<typeof setTimeout> | undefined;
+  private onScroll = () => {
+    if (!this.timer)
+      this.timer = setTimeout(() => {
+        this.timer = undefined;
+        this.position();
+      }, 16);
+  };
+  private position() {
+    if (!this.slot) return;
+    const rect = this.slot.getBoundingClientRect();
+    let x = 0,
+      y = 0;
+    for (const [node, w] of this.controls) {
+      if (x && x + w > this.available) {
+        x = 0;
+        y += 40;
+      }
+      const point = fixedCoordinates(node, rect.left + x, rect.top + y);
+      node.style.setProperty("--nagi-dock-x", `${point.x}px`);
+      node.style.setProperty("--nagi-dock-y", `${point.y}px`);
+      node.style.setProperty("--nagi-dock-w", `${w}px`);
+      x += w + 6;
+    }
+  }
   private restore(node: HTMLElement) {
     for (const key of ["x", "y", "w"])
       node.style.removeProperty(`--nagi-dock-${key}`);
@@ -23,6 +81,10 @@ export class ContextHeaderBridge {
 [data-nagi-context-header] [role=menu],[data-nagi-context-header] [role=dialog],[data-nagi-context-header] [role=listbox],[data-nagi-context-header] [role=tooltip],[data-nagi-context-header] [data-radix-popper-content-wrapper]{visibility:visible!important;pointer-events:auto!important}
 `;
     document.head.append(this.style);
+    window.addEventListener("scroll", this.onScroll, {
+      capture: true,
+      passive: true,
+    });
   }
   refresh(slot: HTMLElement, enabled: boolean) {
     const header = enabled ? resolveHeader() : null;
@@ -66,21 +128,11 @@ export class ContextHeaderBridge {
       rowWidth += w + gap;
     }
     slot.style.height = `${34 + (rows - 1) * 40}px`;
-    const rect = slot.getBoundingClientRect();
-    let x = 0,
-      y = 0;
-    for (const [node, w] of this.controls) {
-      if (x && x + w > available) {
-        x = 0;
-        y += 40;
-      }
-      node.style.setProperty("--nagi-dock-x", `${rect.left + x}px`);
-      node.style.setProperty("--nagi-dock-y", `${rect.top + y}px`);
-      node.style.setProperty("--nagi-dock-w", `${w}px`);
-      x += w + gap;
-    }
+    this.slot = enabled ? slot : null;
+    this.available = available;
     this.marks.set("data-nagi-context-header", header ? [header] : []);
     this.marks.set("data-nagi-docked", this.controls.keys());
+    this.position();
     document.documentElement.toggleAttribute(
       "data-nagi-shell-reserve",
       enabled && !header,
@@ -88,6 +140,9 @@ export class ContextHeaderBridge {
     return { header: !!header, controls: this.controls.size };
   }
   dispose() {
+    window.removeEventListener("scroll", this.onScroll, true);
+    clearTimeout(this.timer);
+    this.slot = null;
     this.marks.clear();
     for (const node of this.controls.keys()) this.restore(node);
     this.controls.clear();

@@ -1,5 +1,5 @@
 import type { State, Selection, Phase } from "../shared/model";
-import { resolveMessages } from "../adapter/messages";
+import { resolveMessageGroups } from "../adapter/messages";
 import { Marks } from "./marks";
 
 interface Identity {
@@ -27,6 +27,12 @@ export class MessageLayout {
 [data-nagi-message=assistant] > [data-nagi-owned=message-identity]{right:calc(100% + 24px)!important;left:auto!important}
 [data-nagi-message=user] > [data-nagi-owned=message-identity]{left:calc(100% + 24px)!important;right:auto!important}
 [data-nagi-message-standalone]{width:calc(min(100%,var(--nagi-thread-width,1040px)) - 2 * var(--nagi-identity-space))!important;max-width:calc(min(100%,var(--nagi-thread-width,1040px)) - 2 * var(--nagi-identity-space))!important;margin:var(--nagi-message-gap,24px) auto!important}
+[data-nagi-message-envelope]{--nagi-envelope-inset:0px;box-sizing:border-box!important;max-width:var(--nagi-thread-width,1040px)!important;width:100%!important;margin:var(--nagi-message-gap,24px) auto!important;padding:0 var(--nagi-envelope-inset)!important;font-family:var(--nagi-ui-font,monospace)!important;color:var(--nagi-ui-text)!important}
+[data-nagi-message-envelope][data-nagi-envelope-identity]{--nagi-envelope-inset:calc(var(--nagi-avatar-size,64px) + 24px);padding-inline:var(--nagi-envelope-inset)!important}
+[data-nagi-message-path]{box-sizing:border-box!important;display:block!important;max-width:100%!important;width:100%!important;margin-inline:0!important;padding-inline:0!important}
+[data-nagi-message][data-nagi-message-grouped]{width:100%!important;max-width:100%!important;margin:16px 0!important}
+[data-nagi-message-accessory]{box-sizing:border-box!important;max-width:100%!important;margin-inline:0!important;font-family:var(--nagi-ui-font,monospace)!important;font-size:var(--nagi-ui-font-size,15px)!important;color:var(--nagi-ui-text)!important}
+[data-nagi-message-accessory] :is(button,summary,div,span,p,a){font-family:var(--nagi-ui-font,monospace)!important}
 [data-nagi-message] pre{max-width:100%;overflow-x:auto}
 @media(max-width:600px){[data-nagi-turn]{padding-inline:12px!important}[data-nagi-message=user]{max-width:calc(100% - var(--nagi-identity-space))!important}[data-nagi-message-card]{padding:12px!important}}
 `;
@@ -63,8 +69,31 @@ export class MessageLayout {
       s.enabled &&
       l.variant === "network" &&
       (l.messageCards || l.messageAvatars || l.messageNames);
-    const regions = active ? resolveMessages() : [];
+    const regions = active ? resolveMessageGroups() : [];
     const nodes = new Set(regions.map((r) => r.node));
+    const groups = regions.filter((r) => r.envelope !== r.node);
+    this.marks.set(
+      "data-nagi-message-envelope",
+      groups.map((r) => r.envelope),
+    );
+    this.marks.set(
+      "data-nagi-envelope-identity",
+      l.messageAvatars || l.messageNames ? groups.map((r) => r.envelope) : [],
+    );
+    this.marks.set(
+      "data-nagi-message-grouped",
+      groups.map((r) => r.node),
+    );
+    this.marks.set(
+      "data-nagi-message-path",
+      groups
+        .flatMap((r) => r.path)
+        .filter((p) => !groups.some((g) => g.envelope === p)),
+    );
+    this.marks.set(
+      "data-nagi-message-accessory",
+      groups.flatMap((r) => r.accessories),
+    );
     for (const [node, badge] of this.badges)
       if (!nodes.has(node) || (!l.messageAvatars && !l.messageNames)) {
         badge.host.remove();

@@ -55,3 +55,13 @@ O print e diagnóstico da 0.1.1 confirmaram tema ativo, sidebar ocultada e compo
 A barra nAGI usa o centro da largura disponível do cabeçalho. Abaixo de 1100 px (ou se as ferramentas exigirem mais espaço) o cabeçalho recebe duas linhas. O tema ativo fornece cor do campo, texto e fonte; com tema desligado, usa a paleta própria da barra nAGI. Menus e diálogos não são normalizados como botões do cabeçalho. Os controles permanecem no documento original para preservar eventos pointer/teclado e âncoras de popovers; o editor de opções continua isolado no iframe.
 
 Limitações: não houve renderização autenticada desta revisão. Um frontend sem hooks semânticos ou sem Share reconhecível pode não ser detectado, preservando o cabeçalho. O diagnóstico formato 2 inclui apenas geometria/estilos e categorias fixas (share/menu/files/other), nunca títulos ou rótulos completos. Os zero turns no relatório do Work também indicam que o seletor de mensagens não foi validado para essa variante; isso não foi alterado por esta revisão do cabeçalho.
+
+## Retorno real do Work · 0.2.1
+
+O diagnóstico 0.2.0 (Firefox 155, viewport 2338 × 1171, pixel ratio 0,8) registra sete mensagens por papel, mas nenhum article de turno. O suposto cabeçalho era um div dentro de uma section de mensagem, com cinco controles de resposta e coordenada vertical negativa. Isso explica tanto as ações removidas da posição original quanto a ausência dos controles verdadeiros na faixa de contexto. A revisão exclui o envelope completo de cada mensagem da detecção de cabeçalho.
+
+A estrutura registrada separa raciocínio, conteúdo final e feedback em ramos irmãos. A revisão dimensiona seu envelope comum e aplica a fonte aos acessórios, preservando nós e eventos. As oito camadas externas detectadas do composer já eram transparentes: o antigo teto de busca podia deixar camadas superiores intactas. A nova busca é mais profunda, limitada pelas fronteiras funcionais do chat.
+
+O aside direito foi medido em y=52, altura 517 e largura 300, sob as barras nAGI. A revisão calcula o deslocamento a partir da altura real do shell, reserva margem de 12 px e limita a altura disponível. Não move conteúdo entre documentos.
+
+Essas evidências orientam fixtures estruturais e testes de geometria simulada. Não equivalem a uma inspeção autenticada da 0.2.1. O diagnóstico formato 4 amplia amostras de ancestrais, envelopes, acessórios e painéis mantendo a lista permitida de atributos, estilos e categorias sem texto privado.
