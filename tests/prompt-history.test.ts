@@ -1,0 +1,20 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { JSDOM } from 'jsdom';
+import { ConversationIndex } from '../src/conversation/index.ts';
+import { PromptHistory } from '../src/features/prompt-history.ts';
+test('prompt recall restores draft, ignores unrelated editors and never submits', () => {
+ const dom = new JSDOM('<textarea id="composer">draft</textarea><input id="other">');
+ Object.assign(globalThis, { window: dom.window });
+ const doc=dom.window.document, node=doc.querySelector('textarea')!, index=new ConversationIndex('a');
+ index.hydrate(['one','two'].map((text,order)=>({conversationId:'a',id:String(order),role:'user',order,text,preview:text,headings:[],attachments:[],updatedAt:1})));
+ const service={index} as any; let enabled=true, sends=0; node.addEventListener('submit',()=>sends++);
+ const history=new PromptHistory(service,()=>node,()=>enabled,assert.fail);
+ const key=(target:Element,key:string)=>target.dispatchEvent(new dom.window.KeyboardEvent('keydown',{key,altKey:true,bubbles:true,cancelable:true}));
+ key(node,'ArrowUp');assert.equal(node.value,'two');key(node,'ArrowUp');assert.equal(node.value,'one');key(node,'ArrowDown');key(node,'ArrowDown');assert.equal(node.value,'draft');
+ key(doc.querySelector('input')!,'ArrowUp');assert.equal(node.value,'draft');
+ enabled=false;key(node,'ArrowUp');assert.equal(node.value,'draft');enabled=true;
+ key(node,'ArrowUp');node.value='edited';key(node,'ArrowUp');key(node,'ArrowDown');assert.equal(node.value,'edited');
+ service.index=new ConversationIndex('b');key(node,'ArrowUp');assert.equal(node.value,'edited');assert.equal(sends,0);
+ history.dispose();dom.window.close();
+});

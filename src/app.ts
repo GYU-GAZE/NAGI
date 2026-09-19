@@ -1,3 +1,4 @@
+import { PromptHistory } from "./features/prompt-history";
 import type { Continuation } from "./conversation/handoff";
 import { writeDraft } from "./features/composer-draft";
 import { ConversationService } from "./conversation/service";
@@ -123,6 +124,7 @@ export async function startApp(client: Client) {
       moduleErrors: errors,
     }),
   });
+  const promptHistory = new PromptHistory(conversations, () => adapter.composer(), () => current.settings.enabled, message => shell.message(message));
   function apply() {
     safe("appearance", () => appearance.apply(current.settings));
     safe("layout-theme", () => layout.apply(current.settings));
@@ -250,6 +252,7 @@ export async function startApp(client: Client) {
   return {
     dispose() {
       stop();
+      promptHistory.dispose();
       conversations.dispose();
       unsubscribe();
       guard.dispose();
