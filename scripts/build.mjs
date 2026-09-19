@@ -6,15 +6,15 @@ const base = {
   version: JSON.parse(
     await readFile(new URL("../package.json", import.meta.url), "utf8"),
   ).version,
-  description:
-    "Temas, personas locais e Conversation Chains para ChatGPT Web.",
+  description: "Temas, personas locais e Conversation Chains para ChatGPT Web.",
   permissions: ["storage"],
   host_permissions: ["https://chatgpt.com/*"],
   content_scripts: [
     {
       matches: ["https://chatgpt.com/*"],
       js: ["content.js"],
-      run_at: "document_idle",
+      css: ["early.css"],
+      run_at: "document_start",
     },
   ],
   action: {
@@ -43,6 +43,7 @@ for (const target of ["chromium", "firefox"]) {
     sourcemap: true,
     legalComments: "none",
   });
+  await copyFile("src/early.css", `${out}/early.css`);
   const manifest = {
     ...base,
     ...(target === "chromium"

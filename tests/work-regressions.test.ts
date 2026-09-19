@@ -376,41 +376,50 @@ test("thinking before the answer exists shows name, status and thinking avatar w
   }
 });
 
-test("thinking identity joins the reasoning envelope then returns to the response for talking/idle", () => {
+test("reasoning identity remains beside its own block after subsequent steps and the final answer", () => {
   const dom = setup(work),
     layout = new MessageLayout(),
     state = personaState();
   try {
     const answer = document.querySelector<HTMLElement>("#answer")!;
-    const response = document.querySelector<HTMLElement>("#response")!;
+    const reasoning = document.querySelector<HTMLElement>("#reasoning")!;
     const worked = document.querySelector("#worked");
     layout.apply(state, personaSelection, "thinking");
-    const host = answer.querySelector("[data-nagi-owned=message-identity]")!;
-    assert.equal(host.parentElement, answer);
+    const host = reasoning.querySelector("[data-nagi-owned=message-identity]")!;
+    assert.equal(host.parentElement, reasoning);
+    assert.equal(reasoning.hasAttribute("data-nagi-reasoning"), true);
     assert.equal(
       host.shadowRoot!.querySelector("img")!.getAttribute("src"),
       state.personas[0].avatars.thinking,
     );
-    assert.equal(answer.hasAttribute("data-nagi-thinking-envelope"), true);
-    assert.equal(document.querySelector("#worked"), worked);
+    const second = document.createElement("details");
+    second.innerHTML =
+      "<summary>Working for 3 seconds</summary><p>Next reasoning step</p>";
+    reasoning.after(second);
+    layout.apply(state, personaSelection, "thinking");
+    assert.equal(host.parentElement, reasoning);
+    assert.equal(
+      second.querySelectorAll("[data-nagi-owned=message-identity]").length,
+      1,
+    );
+    assert.equal(
+      host.shadowRoot!.querySelector(".status")!.textContent,
+      "Raciocínio",
+    );
     layout.apply(state, personaSelection, "talking");
-    assert.equal(host.parentElement, response);
-    assert.equal(
-      host.shadowRoot!.querySelector("img")!.getAttribute("src"),
-      state.personas[0].avatars.talking,
-    );
-    assert.equal(
-      host.shadowRoot!.querySelector<HTMLElement>(".status")!.hidden,
-      true,
-    );
-    assert.equal(answer.hasAttribute("data-nagi-thinking-envelope"), false);
     layout.apply(state, personaSelection, "idle");
+    assert.equal(host.parentElement, reasoning);
     assert.equal(
       host.shadowRoot!.querySelector("img")!.getAttribute("src"),
-      state.personas[0].avatars.idle,
+      state.personas[0].avatars.thinking,
+    );
+    assert.equal(document.querySelector("#worked"), worked);
+    assert.equal(
+      second.querySelectorAll("[data-nagi-owned=message-identity]").length,
+      1,
     );
     state.settings.enabled = false;
-    layout.apply(state, personaSelection, "thinking");
+    layout.apply(state, personaSelection, "idle");
     assert.equal(
       answer.querySelector("[data-nagi-owned=message-identity]"),
       null,

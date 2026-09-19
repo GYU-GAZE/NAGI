@@ -1,4 +1,5 @@
 import type { State, Selection, Phase } from "../shared/model";
+import { resolveReasoning } from "../adapter/reasoning";
 import { resolveMessageGroups } from "../adapter/messages";
 import { Marks } from "./marks";
 
@@ -41,6 +42,9 @@ export class MessageLayout {
 [data-nagi-message=user][data-nagi-message-grouped]{max-width:100%!important;margin-left:auto!important;margin-right:0!important}
 [data-nagi-message=user][data-nagi-message-standalone]:not([data-nagi-message-grouped]){margin-left:auto!important;margin-right:max(var(--nagi-identity-space),calc((100% - var(--nagi-thread-width,1040px)) / 2 + var(--nagi-identity-space)))!important}
 [data-nagi-message=user] [data-nagi-message-surface]{min-width:0!important;width:auto!important;max-width:100%!important;overflow-wrap:anywhere!important;text-align:start!important}
+[data-nagi-reasoning]{position:relative!important;box-sizing:border-box!important;width:100%!important;max-width:var(--nagi-thread-width,1040px)!important;margin:var(--nagi-message-gap,24px) auto!important;padding:0 calc(var(--nagi-avatar-size,64px) + 24px)!important;min-height:calc(var(--nagi-avatar-size,64px) + 64px)!important;font-family:var(--nagi-ui-font,monospace)!important}
+[data-nagi-message-envelope] [data-nagi-reasoning]{padding:0!important;max-width:100%!important;margin:16px 0!important}
+[data-nagi-message-envelope] [data-nagi-reasoning] > [data-nagi-thinking-identity]{left:calc(-1 * (var(--nagi-avatar-size,64px) + 24px))!important}
 [data-nagi-thinking-envelope]{position:relative!important;min-height:calc(var(--nagi-avatar-size,64px) + 64px)!important}
 [data-nagi-owned=message-identity][data-nagi-thinking-identity]{position:absolute!important;top:0!important;left:0!important;right:auto!important;width:var(--nagi-avatar-size,64px)!important}
 [data-nagi-owned=thinking-placeholder]{position:relative!important;box-sizing:border-box!important;max-width:var(--nagi-thread-width,1040px)!important;width:100%!important;min-height:calc(var(--nagi-avatar-size,64px) + 64px)!important;margin:var(--nagi-message-gap,24px) auto!important;padding:0 calc(var(--nagi-avatar-size,64px) + 24px)!important}
@@ -89,6 +93,7 @@ export class MessageLayout {
     if (badge.name.textContent !== name) badge.name.textContent = name;
     badge.name.hidden = !names;
     badge.status.hidden = !thinking;
+    badge.status.textContent = "Thinking...";
     const initials = Array.from(name.trim()).slice(0, 2).join("").toUpperCase();
     if (badge.initials.textContent !== initials)
       badge.initials.textContent = initials;
@@ -114,11 +119,31 @@ export class MessageLayout {
     const identities = l.messageAvatars || l.messageNames;
     const last = regions.at(-1);
     const thinking = active && identities && phase === "thinking";
-    const thinkingGroup = thinking && last?.role === "assistant" ? last : null;
+    const reasoning = active && identities ? resolveReasoning() : [];
+    const currentReasoning = reasoning
+      .filter((node) =>
+        !last
+          ? true
+          : last.role === "assistant"
+            ? last.envelope.contains(node)
+            : !!(last.node.compareDocumentPosition(node) & 4),
+      )
+      .slice(-1);
+    const thinkingGroup =
+      thinking && !currentReasoning.length && last?.role === "assistant"
+        ? last
+        : null;
+    reasoning.forEach((node) => nodes.add(node));
+    this.marks.set("data-nagi-reasoning", reasoning);
     const pendingParent =
       last?.envelope.parentElement ??
       document.querySelector<HTMLElement>("main,[role=main]");
-    if (thinking && !thinkingGroup && pendingParent) {
+    if (
+      thinking &&
+      !thinkingGroup &&
+      !currentReasoning.length &&
+      pendingParent
+    ) {
       if (!this.pending) {
         this.pending = document.createElement("div");
         this.pending.dataset.nagiOwned = "thinking-placeholder";
@@ -188,6 +213,26 @@ export class MessageLayout {
       ? state.personas.find((p) => p.id === selection.personaId)
       : null;
     const lastAssistant = last?.role === "assistant" ? last.node : null;
+    for (const node of reasoning) {
+      const badge = this.badge(node);
+      badge.host.toggleAttribute("data-nagi-thinking-identity", true);
+      this.showIdentity(
+        badge,
+        persona?.name ?? "ChatGPT",
+        persona?.avatars.thinking ?? persona?.avatars.idle ?? "",
+        l.messageAvatars,
+        l.messageNames,
+        true,
+      );
+      badge.status.textContent =
+        thinking && currentReasoning.includes(node)
+          ? "Thinking..."
+          : "Raciocínio";
+      badge.host.setAttribute(
+        "aria-label",
+        `${persona?.name ?? "ChatGPT"}: raciocínio`,
+      );
+    }
     if (this.pending) {
       const badge = this.badge(this.pending);
       badge.host.toggleAttribute("data-nagi-thinking-identity", true);

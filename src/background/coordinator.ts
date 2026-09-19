@@ -36,23 +36,32 @@ export class Coordinator {
       return state;
     });
   }
-  lock() {
-    return this.atomic(
-      async () =>
-        ((await this.session.get("lock")) as SendLock | undefined) ?? null,
-    );
+  private async locks(): Promise<SendLock[]> {
+    const current = await this.session.get("locks");
+    if (Array.isArray(current)) return current as SendLock[];
+    const legacy = (await this.session.get("lock")) as
+      | SendLock
+      | null
+      | undefined;
+    return legacy ? [legacy] : [];
+  }
+  lock(token?: string) {
+    return this.atomic(async () => {
+      const locks = await this.locks();
+      return (token ? locks.find((l) => l.token === token) : locks[0]) ?? null;
+    });
   }
   acquire(owner: Owner, personaId: string | null) {
     return this.atomic(async () => {
-      const existing = (await this.session.get("lock")) as
-        | SendLock
-        | null
-        | undefined;
-      if (existing) return { acquired: false, lock: existing };
       const s = await this.read();
       const p = s.personas.find((p) => p.id === personaId);
       if (personaId && !p)
         throw new Error("Persona removida. Selecione novamente.");
+      const locks = await this.locks();
+      const blocking = locks.find(
+        (l) => l.tabId === owner.tabId || l.personaId !== personaId,
+      );
+      if (blocking) return { acquired: false, lock: blocking };
       const lock: SendLock = {
         ...owner,
         token: crypto.randomUUID(),
@@ -62,43 +71,53 @@ export class Coordinator {
         phase: "reserved",
         orphaned: false,
       };
-      await this.session.set("lock", lock);
+      await this.session.set("locks", [...locks, lock]);
       return { acquired: true, lock };
     });
   }
   update(owner: Owner, token: string, action: "generating" | "release") {
     return this.atomic(async () => {
-      const lock = (await this.session.get("lock")) as SendLock | null;
+      const locks = await this.locks();
+      const lock = locks.find((l) => l.token === token);
       if (
         !lock ||
-        lock.token !== token ||
         lock.tabId !== owner.tabId ||
         lock.instanceId !== owner.instanceId
       )
         throw new Error("Trava pertence a outra transacao.");
       await this.session.set(
-        "lock",
-        action === "release" ? null : { ...lock, phase: "generating" },
+        "locks",
+        action === "release"
+          ? locks.filter((l) => l.token !== token)
+          : locks.map((l) =>
+              l.token === token ? { ...l, phase: "generating" } : l,
+            ),
       );
       return true;
     });
   }
   orphan(tabId: number, instanceId?: string) {
     return this.atomic(async () => {
-      const lock = (await this.session.get("lock")) as SendLock | null;
-      if (
-        lock?.tabId === tabId &&
-        (!instanceId || lock.instanceId !== instanceId)
-      )
-        await this.session.set("lock", { ...lock, orphaned: true });
+      const locks = await this.locks();
+      await this.session.set(
+        "locks",
+        locks.map((l) =>
+          l.tabId === tabId && (!instanceId || l.instanceId !== instanceId)
+            ? { ...l, orphaned: true }
+            : l,
+        ),
+      );
     });
   }
   recover(expectedToken: string) {
     return this.atomic(async () => {
-      const lock = (await this.session.get("lock")) as SendLock | null;
-      if (lock?.token !== expectedToken)
+      const locks = await this.locks();
+      if (!locks.some((l) => l.token === expectedToken))
         throw new Error("A trava mudou. Confira novamente.");
-      await this.session.set("lock", null);
+      await this.session.set(
+        "locks",
+        locks.filter((l) => l.token !== expectedToken),
+      );
       return true;
     });
   }

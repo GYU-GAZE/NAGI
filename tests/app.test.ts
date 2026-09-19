@@ -393,36 +393,70 @@ test("layout settings persist module toggles, keep editing isolated and restore 
   }
 });
 
-test("unknown mode switch restores native navigation and returns to nAGI without changing the theme", async () => {
+test("mode selector stays beside New chat on home and disappears on send or existing-chat routes", async () => {
   const f = await fixture();
   try {
-    click(f.root, "Alternar entre Chat e Work");
-    await tick();
-    assert.equal((await f.client.state()).settings.navigation, "native");
-    assert.equal((await f.client.state()).settings.hideSidebar, false);
+    const pair = document.createElement("div");
+    pair.setAttribute("role", "tablist");
+    pair.innerHTML =
+      '<button role="tab" aria-selected="true">Chat</button><button role="tab" aria-selected="false">Work</button>';
+    document.querySelector("#page-header")!.append(pair);
+    const refresh = () =>
+      f.client.mutate({ type: "settings", patch: { debug: false } });
+    await refresh();
+    let modes = f.root.querySelector<HTMLElement>(".mode-switcher")!;
+    assert.equal(modes.hidden, true);
+    assert.equal(f.root.querySelector(".bar .mode-switcher"), null);
+    f.dom.window.history.pushState({}, "", "/");
+    await refresh();
+    modes = f.root.querySelector<HTMLElement>(".context-info .mode-switcher")!;
+    assert.ok(modes);
+    assert.equal(modes.hidden, false);
+    assert.equal(modes.previousElementSibling!.className, "chat-title");
     assert.equal(
-      document.querySelector("#history")!.hasAttribute("data-nagi-sidebar"),
-      false,
+      f.root.querySelector('[aria-label="Alternar entre Chat e Work"]'),
+      null,
     );
-    assert.equal(
-      document
-        .querySelector("#page-header")!
-        .hasAttribute("data-nagi-context-header"),
-      false,
-    );
-    assert.equal(
-      document.documentElement.hasAttribute("data-nagi-theme"),
-      true,
-    );
-    click(f.root, "Voltar ao layout nAGI");
-    await tick();
+    const sent = document.createElement("div");
+    sent.dataset.messageAuthorRole = "user";
+    sent.textContent = "Prompt";
+    document.querySelector("main")!.append(sent);
+    await refresh();
+    assert.equal(modes.hidden, true);
+    sent.remove();
+    f.dom.window.history.pushState({}, "", "/c/not-loaded-yet");
+    await refresh();
+    assert.equal(modes.hidden, true);
     assert.equal((await f.client.state()).settings.navigation, "topbar");
     assert.equal((await f.client.state()).settings.hideSidebar, true);
-    assert.equal(
-      document
-        .querySelector("#page-header")!
-        .hasAttribute("data-nagi-context-header"),
-      true,
+  } finally {
+    f.cleanup();
+  }
+});
+
+test("Projects opens the native directory when unloaded, then lists discovered projects outside the sidebar", async () => {
+  const f = await fixture();
+  try {
+    const control = document.createElement("button");
+    control.type = "button";
+    control.textContent = "Project";
+    let opens = 0;
+    control.onclick = () => {
+      opens++;
+      const dialog = document.createElement("div");
+      dialog.setAttribute("role", "dialog");
+      dialog.innerHTML = '<a href="/projects/real-project">Real project</a>';
+      document.body.append(dialog);
+    };
+    document.querySelector("form")!.append(control);
+    click(f.root, "Projects");
+    assert.equal(opens, 1);
+    click(f.root, "Projects");
+    assert.equal(opens, 1);
+    assert.ok(
+      f.panel.querySelector(
+        'a[href="https://chatgpt.com/projects/real-project"]',
+      ),
     );
   } finally {
     f.cleanup();

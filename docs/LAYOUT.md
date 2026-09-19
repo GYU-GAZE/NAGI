@@ -1,4 +1,4 @@
-# Layout Network · 0.2.3
+# Layout Network · 0.2.4
 
 ![Referência visual fornecida pelo usuário](reference-network.png)
 
@@ -10,7 +10,7 @@ Implementação estrutural da referência enviada pelo usuário: barra de ferram
 
 | Responsabilidade | Arquivos | Configuração |
 | --- | --- | --- |
-| Seleção Chat/Work | `src/adapter/modes.ts`, `src/ui/mode-switcher.ts` | Automática no modo Network/topbar |
+| Seleção Chat/Work | `src/adapter/modes.ts`, `src/ui/mode-switcher.ts` | Faixa de contexto, somente na página inicial vazia |
 | Tela inicial e aparência da interface nativa | `src/features/native-theme.ts` | Integrada ao tema ativo |
 | Ferramentas e coordenação de painéis | `src/ui/shell.ts`, `src/ui/network-css.ts`, `src/ui/icons.ts` | `navigation`, `layout.variant` |
 | Título, projeto, Work, Chain, Persona e sessões vizinhas | `src/ui/context-bar.ts` | `layout.contextBar` |
@@ -81,6 +81,18 @@ O avatar usa thinking, com fallback para idle ou monograma. Nome e retrato segue
 
 O seletor Chat/Work fica próximo ao logotipo, separado das ações da conversa. Pares de tabs, botões ou links nativos são reconhecidos em regiões de navegação. Os botões nAGI acionam esses controles somente quando o usuário escolhe um modo. Links de conversa/projeto, links externos e controles dentro de mensagens são excluídos. O estado ativo vem de aria-selected/pressed/checked/current ou data-state, nunca da presença isolada das palavras Chat e Work.
 
-Um trigger de menu reconhecido no cabeçalho usa docking para um espaço próprio na barra superior. O botão original permanece no mesmo pai; menus mantêm suas âncoras. Sem correspondência segura, o seletor oferece acesso à navegação original com retorno explícito ao layout. Essa recuperação altera apenas as opções de navegação/sidebar da extensão; não altera o tema nem as instruções da conta.
+Um trigger de menu reconhecido no cabeçalho usa docking para um espaço próprio na faixa de contexto, ao lado de Novo chat e somente na página inicial vazia. O botão original permanece no mesmo pai; menus mantêm suas âncoras. Sem correspondência segura, o seletor fica oculto.
 
 O módulo NativeTheme aplica fonte e cor de texto à interface nativa, com exclusões para código, fórmulas, mídia, conteúdo embutido e controles próprios. Sem mensagens carregadas, marca a tela inicial e normaliza superfícies de sugestões/abas. Menus, diálogos e painéis têm superfícies baseadas na cor do composer, bordas derivadas do texto e destaque configurável. O módulo não remove controles ou inventa conteúdo de sugestões. Marcas são retiradas quando a página muda ou nAGI é pausado.
+
+## Correção de escopo e posição · 0.2.4
+
+O seletor pertence à faixa de contexto, após o título Novo chat. A regra central `isModeSelectionPage` exige rota `/` e ausência de mensagens carregadas. Conversas `/c/...`, conversas em projetos e telas de GPTs não exibem a troca global, mesmo antes de o DOM de mensagens aparecer. A primeira mensagem na raiz também oculta o seletor imediatamente na atualização do adapter.
+
+O docking do menu nativo aplica a mesma regra. A execução por botão revalida a rota e a existência do controle, cobrindo eventos durante transições. Sem controles reconhecidos, o seletor fica oculto; o caminho de recuperação que alterava navegação/sidebar foi removido. A preferência de contexto desativado também oculta o seletor. O badge Work continua informativo dentro de conversas e não é uma ação de troca.
+
+## Identidade de raciocínio e carregamento antecipado · 0.2.4
+
+Cada bloco de raciocínio reconhecido recebe sua própria identidade ao lado do conteúdo, com o mesmo alinhamento da conversa. O avatar usa a imagem thinking da Persona, com fallback para idle/iniciais. Apenas a etapa ativa exibe “Thinking...”; blocos anteriores mantêm nome, avatar e “Raciocínio”. A identidade não é transferida para a resposta final, que tem seu próprio avatar. O nAGI não duplica o texto nativo nem arquiva blocos removidos pelo site.
+
+`early.css` acompanha o content script em `document_start`. `primeAppearance` lê as configurações locais, aplica fonte/paleta e oculta a sidebar conhecida conforme a preferência salva. A inicialização completa aguarda o body, depois retira as marcas provisórias. Pausa e falha de leitura não ativam o preload; um limite de cinco segundos retira suas marcas em caso de falha. A página não fica escondida durante a espera. O objetivo é reduzir o flash nativo, sem prometer pintura anterior à resolução assíncrona do storage.

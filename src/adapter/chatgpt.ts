@@ -1,3 +1,4 @@
+import { resolveProjects } from "./projects";
 import { resolveMessages } from "./messages";
 import { selectors as S } from "./selectors";
 import { GenerationTracker } from "./generation";
@@ -135,7 +136,7 @@ export class DOMChatGPTAdapter implements ChatGPTAdapter {
     return this.links("chat");
   }
   projects() {
-    return this.links("project");
+    return resolveProjects();
   }
   newChat() {
     const link = document.querySelector<HTMLAnchorElement>(S.newChat);

@@ -39,7 +39,7 @@ const client: Client = {
         case "selection":
           return coordinator.selection(tabId, p.key, p.value);
         case "lock.get":
-          return coordinator.lock();
+          return coordinator.lock(typeof p.token === "string" ? p.token : undefined);
         case "lock.acquire":
           return coordinator.acquire({ tabId, instanceId }, p.personaId);
         case "lock.release":

@@ -37,21 +37,21 @@ const persona = {
   instructions: "Formal prose.",
   avatars: {},
 };
-test("concurrent lock acquisition has exactly one winner", async () => {
+test("same persona permits independent concurrent tab reservations", async () => {
   const { c } = setup();
   const results = await Promise.all(
     Array.from({ length: 50 }, (_, i) =>
       c.acquire({ tabId: i, instanceId: String(i) }, null),
     ),
   );
-  assert.equal(results.filter((r) => r.acquired).length, 1);
-  assert.equal(new Set(results.map((r) => r.lock.token)).size, 1);
+  assert.equal(results.filter((r) => r.acquired).length, 50);
+  assert.equal(new Set(results.map((r) => r.lock.token)).size, 50);
 });
 test("lock persists through service worker reconstruction without expiry", async () => {
   const { c, local, session } = setup();
   const first = await c.acquire(alice, null);
   const restarted = new Coordinator(local, session, () => 1e15);
-  const next = await restarted.acquire(bob, null);
+  const next = await restarted.acquire(alice, null);
   assert.equal(next.acquired, false);
   assert.equal(next.lock.token, first.lock.token);
 });
@@ -76,7 +76,10 @@ test("reload marks owner orphaned and never automatically releases", async () =>
   await c.acquire(alice, null);
   await c.orphan(1, "reloaded");
   assert.equal((await c.lock())?.orphaned, true);
-  assert.equal((await c.acquire(bob, null)).acquired, false);
+  assert.equal(
+    (await c.acquire({ ...alice, instanceId: "reloaded" }, null)).acquired,
+    false,
+  );
 });
 test("hello from same instance leaves ownership intact", async () => {
   const { c } = setup();
@@ -336,4 +339,50 @@ test("0.1 state migrates additively to modular layout without losing theme, pers
       patch: { layout: { ...edited.settings.layout, avatarSize: 500 } },
     }),
   );
+});
+
+test("same-persona holders release separately and block a different persona until all finish", async () => {
+  const { c, local, session } = setup();
+  await c.mutate({ type: "persona.save", persona, expectedVersion: 0 });
+  await c.mutate({
+    type: "persona.save",
+    persona: { ...persona, id: "other", name: "Other" },
+    expectedVersion: 0,
+  });
+  const a = await c.acquire(alice, "gm"),
+    b = await c.acquire(bob, "gm");
+  assert.equal(a.acquired, true);
+  assert.equal(b.acquired, true);
+  assert.notEqual(a.lock.token, b.lock.token);
+  const third = { tabId: 3, instanceId: "c" };
+  assert.equal((await c.acquire(third, "other")).acquired, false);
+  await c.update(alice, a.lock.token, "release");
+  const restarted = new Coordinator(local, session);
+  assert.equal((await restarted.lock(b.lock.token))?.tabId, 2);
+  assert.equal((await restarted.acquire(third, "other")).acquired, false);
+  await assert.rejects(restarted.update(alice, b.lock.token, "release"));
+  await restarted.update(bob, b.lock.token, "release");
+  assert.equal((await restarted.acquire(third, "other")).acquired, true);
+});
+test("legacy reservation migration and orphan recovery preserve other same-persona holders", async () => {
+  const { c, session } = setup();
+  await session.set("lock", {
+    ...alice,
+    token: "legacy",
+    personaId: null,
+    personaName: "ChatGPT",
+    phase: "generating",
+    orphaned: false,
+    createdAt: 1,
+  });
+  const b = await c.acquire(bob, null);
+  assert.equal(b.acquired, true);
+  await c.orphan(1);
+  assert.equal((await c.lock("legacy"))?.orphaned, true);
+  assert.equal((await c.lock(b.lock.token))?.orphaned, false);
+  await c.recover("legacy");
+  assert.equal(await c.lock("legacy"), null);
+  assert.ok(await c.lock(b.lock.token));
+  await c.update(bob, b.lock.token, "release");
+  assert.equal(await c.lock(), null);
 });

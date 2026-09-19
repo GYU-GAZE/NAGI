@@ -84,7 +84,7 @@ export class SettingsUI {
     );
     const toggles: [keyof Settings, string][] = [
       ["enabled", "Ativar nAGI"],
-      ["personas", "Personas e trava de envio entre abas"],
+      ["personas", "Personas e coordenação de envio entre abas"],
       ["chains", "Conversation Chains"],
       ["showAvatar", "Mostrar avatar da Persona na barra"],
       ["showName", "Mostrar nome da Persona na barra"],

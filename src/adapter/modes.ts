@@ -1,4 +1,13 @@
-import { messageSelector, resolveMessageGroups } from "./messages";
+import {
+  messageSelector,
+  resolveMessageGroups,
+  resolveMessages,
+} from "./messages";
+
+/** Switching mode belongs to an empty global new-chat page, never an existing chat. */
+export function isModeSelectionPage(doc: Document = document): boolean {
+  return doc.location.pathname === "/" && resolveMessages(doc).length === 0;
+}
 
 export type ChatMode = "chat" | "work";
 export interface ModeControls {

@@ -1,3 +1,4 @@
+import { resolveProjects, resolveProjectsControl } from "../adapter/projects";
 import { resolveModeControls } from "../adapter/modes";
 import { resolveAuxiliaryPanels } from "./auxiliary-panels";
 import { resolveMessageGroups } from "../adapter/messages";
@@ -201,6 +202,7 @@ export function createDiagnosticReport(state: State, doc: Document = document) {
       headerIntegration:
         root.hasAttribute("data-nagi-header-active") ||
         !!doc.querySelector("[data-nagi-context-header]"),
+      reasoningIdentities: doc.querySelectorAll("[data-nagi-reasoning]").length,
       homeRegions: doc.querySelectorAll("[data-nagi-home]").length,
       nativePanels: doc.querySelectorAll("[data-nagi-native-panel]").length,
       networkLayout: root.getAttribute("data-nagi-layout") === "network",
@@ -220,6 +222,10 @@ export function createDiagnosticReport(state: State, doc: Document = document) {
         .length,
     },
     matches: {
+      projects: {
+        links: resolveProjects(doc).length,
+        nativeControl: !!resolveProjectsControl(doc),
+      },
       modes: {
         paired: !!modes.chat && !!modes.work,
         menu: !!modes.trigger,

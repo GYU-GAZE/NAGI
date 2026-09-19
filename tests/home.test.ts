@@ -47,12 +47,8 @@ const pair =
   '<nav id="sidebar"><div role="tablist"><button id="chat" role="tab" aria-selected="false">Chat</button><button id="work" role="tab" aria-selected="true">Work</button></div></nav>';
 test("mode switch finds native tabs in the hidden sidebar and only selects on user activation", () => {
   const dom = setup(pair);
-  let fallback = 0,
-    clicks = 0;
-  const switcher = new ModeSwitcher(
-    () => fallback++,
-    () => {},
-  );
+  let clicks = 0;
+  const switcher = new ModeSwitcher(() => {});
   try {
     document.querySelector("nav")!.setAttribute("data-nagi-sidebar", "hidden");
     const chat = document.querySelector<HTMLButtonElement>("#chat")!;
@@ -70,7 +66,6 @@ test("mode switch finds native tabs in the hidden sidebar and only selects on us
       .querySelector<HTMLButtonElement>('[aria-label="Chat normal"]')!
       .click();
     assert.equal(clicks, 1);
-    assert.equal(fallback, 0);
     assert.equal(chat.parentNode, parent);
     assert.equal(resolveModeControls().active, "chat");
     assert.equal(
@@ -89,10 +84,7 @@ test("mode switch finds native tabs in the hidden sidebar and only selects on us
 test("mode switch rereads replaced native controls and honors unavailable modes", () => {
   const dom = setup(pair);
   let calls = 0;
-  const switcher = new ModeSwitcher(
-    () => {},
-    () => {},
-  );
+  const switcher = new ModeSwitcher(() => {});
   try {
     switcher.update(true);
     const old = document.querySelector<HTMLButtonElement>("#chat")!;
@@ -125,19 +117,13 @@ test("Chat/Work text in messages, project links and untrusted external links is 
   );
   try {
     assert.equal(resolveModeControls().chat, null);
-    let restored = 0;
-    const switcher = new ModeSwitcher(
-      () => restored++,
-      () => {},
-    );
+    const switcher = new ModeSwitcher(() => {});
     switcher.update(true);
-    assert.equal(switcher.host.dataset.integration, "native");
-    switcher.host
-      .querySelector<HTMLButtonElement>(
-        '[aria-label="Alternar entre Chat e Work"]',
-      )!
-      .click();
-    assert.equal(restored, 1);
+    assert.equal(switcher.host.hidden, true);
+    assert.equal(
+      switcher.host.querySelector('[aria-label="Alternar entre Chat e Work"]'),
+      null,
+    );
   } finally {
     dom.window.close();
   }
@@ -155,7 +141,7 @@ test("plain home header with mode tabs is recognized without Share and selection
     dom.window.close();
   }
 });
-test("native mode dropdown docks in its own topbar slot without losing its menu or click handler", () => {
+test("native mode dropdown docks in its context slot only on the empty home page without losing its menu or click handler", () => {
   const dom = setup(
     '<header><button id="mode" aria-haspopup="menu">Work</button><button>Share</button></header>',
   );
@@ -187,6 +173,10 @@ test("native mode dropdown docks in its own topbar slot without losing its menu 
     assert.equal(mode.hasAttribute("data-nagi-docked"), true);
     assert.equal(menu.querySelector("[data-nagi-docked]"), null);
     menu.remove();
+    dom.window.history.pushState({}, "", "/c/loading");
+    assert.equal(bridge.refresh(actions, true, slot).modeDocked, false);
+    assert.equal(mode.hasAttribute("data-nagi-docked"), false);
+    assert.equal(mode.style.getPropertyValue("--nagi-dock-x"), "");
     bridge.refresh(actions, false, slot);
     assert.equal(header.outerHTML, original);
   } finally {
@@ -266,6 +256,31 @@ test("new menus are themed and home-only marks retire when a conversation mounts
     assert.equal(menu.hasAttribute("data-nagi-native-panel"), false);
   } finally {
     theme.dispose();
+    dom.window.close();
+  }
+});
+
+test("stale mode buttons cannot switch an existing chat or trigger navigation recovery", () => {
+  const dom = setup(pair);
+  const switcher = new ModeSwitcher(() => {});
+  try {
+    let calls = 0;
+    document.querySelector<HTMLButtonElement>("#chat")!.onclick = () => calls++;
+    switcher.update(true);
+    const button = switcher.host.querySelector<HTMLButtonElement>(
+      '[aria-label="Chat normal"]',
+    )!;
+    dom.window.history.pushState({}, "", "/c/existing");
+    button.click();
+    assert.equal(calls, 0);
+    assert.equal(switcher.host.hidden, true);
+    dom.window.history.pushState({}, "", "/");
+    switcher.update(true);
+    document.querySelector("nav")!.remove();
+    button.click();
+    assert.equal(calls, 0);
+    assert.equal(switcher.host.hidden, true);
+  } finally {
     dom.window.close();
   }
 });

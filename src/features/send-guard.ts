@@ -142,7 +142,12 @@ export class SendGuard {
           this.hooks.error("Espera cancelada porque o contexto mudou.");
           return;
         }
-        const free = !(await this.client.request("lock.get"));
+        const currentLock = await this.client.request<SendLock | null>(
+          "lock.get",
+        );
+        const free =
+          !currentLock ||
+          currentLock.personaId === this.hooks.selection().personaId;
         if (epoch !== this.queueEpoch) return;
         if (!unchanged()) {
           this.cancelQueue();
@@ -172,7 +177,7 @@ export class SendGuard {
       this.lastLockCheck = Date.now();
       const token = this.lock.token;
       void this.client
-        .request<SendLock | null>("lock.get")
+        .request<SendLock | null>("lock.get", { token })
         .then((current) => {
           if (this.lock?.token === token && current?.token !== token) {
             this.lock = null;

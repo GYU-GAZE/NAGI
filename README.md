@@ -1,8 +1,22 @@
-# nAGI · 0.2.3
+# nAGI · 0.2.4
 
 Extensão modular para o **ChatGPT Web oficial**. Sem API key, backend próprio, telemetria ou alteração automática das instruções da conta.
 
 **Este pacote é experimental.** O usuário confirmou que quase toda a revisão 0.2.1 ficou correta no ChatGPT Work/Firefox. A 0.2.2 integra o tema ao funcionamento padrão, corrige a largura de prompts curtos e mostra a identidade durante Thinking. As novas mudanças passaram pelos testes locais; sua confirmação visual no frontend autenticado continua pendente.
+
+## Atualização 0.2.4 · navegação, raciocínio e inicialização
+
+- Chat/Work fica na faixa de contexto, imediatamente após “Novo chat”, fora da barra do logotipo/ferramentas.
+- Só aparece na página inicial global vazia, quando há controles nativos reconhecidos. Fica oculto em conversas existentes, inclusive durante seu carregamento, e ao enviar a primeira mensagem antes da mudança de URL.
+- O fallback “abrir na navegação original” foi removido. Não há botão de troca sem um controle correspondente nem alteração de navegação/sidebar ao tentar usá-lo.
+- Um botão antigo que permaneça entre atualizações do DOM também verifica novamente a página antes de executar qualquer ação.
+
+- O avatar de raciocínio fica ao lado do bloco nativo, junto ao tempo e ao raciocínio. Etapas anteriores preservam sua identidade enquanto seus blocos permanecem no histórico do site. O estado ativo mostra “Thinking...”; etapas encerradas mostram “Raciocínio”.
+- Projects reconhece links de projetos em toda a interface nativa, incluindo cards e diálogos. Sem links carregados, aciona o controle nativo Projects quando disponível; a lista também permite atualizar a descoberta.
+- Abas diferentes podem enviar simultaneamente com a mesma Persona, inclusive ChatGPT. Personas diferentes continuam coordenadas; cada envio tem sua própria reserva e liberação.
+- O content script e o CSS inicial são carregados em `document_start`. A paleta salva é aplicada assim que as configurações chegam, antes da montagem completa do nAGI. Não há tela inteira escondida; a leitura assíncrona impede garantir ausência absoluta de flash.
+
+Esta revisão substitui o posicionamento e o fallback descritos na seção histórica 0.2.3. As melhorias de tema permanecem. 78 testes locais passaram, com TypeScript e builds Firefox/Chromium. Posição visual, controles Projects da conta e primeiro carregamento ainda precisam de confirmação no frontend autenticado.
 
 ## Atualização 0.2.3 · Chat/Work e aparência da tela inicial
 
@@ -108,7 +122,7 @@ Fixe o ícone nAGI na barra do navegador. Ele oferece pausa e configurações me
 - Em **Chains**, crie uma Chain e adicione a conversa aberta. As setas alteram a ordem; ● marca a sessão atual; × remove apenas o vínculo. Clique em **Salvar Chain** para gravar. Cada Chain tem Persona padrão e opção de lembrar a última Persona.
 - Em **Geral**, habilite a otimização experimental de turnos antigos. Os 30 turnos mais recentes ficam intactos por padrão.
 
-Os menus Recentes e Projects usam somente links já carregados no DOM da navegação. Não acessam endpoints privados nem prometem listar todo o histórico da conta. Se estiverem vazios, abra a sidebar original. Pode ser necessário reparar o adapter para a versão atual do site.
+Recentes usa links carregados na navegação. Projects procura links de projetos em toda a interface nativa, excluindo mensagens e conteúdo editável, e pode abrir o controle nativo Projects por ação explícita. Sem links nem controle reconhecido, oferece carregar a navegação e atualizar a descoberta. Não acessa endpoints privados nem promete listar projetos ainda não disponibilizados pelo site.
 
 ## O que funciona neste marco
 
@@ -118,7 +132,7 @@ Os menus Recentes e Projects usam somente links já carregados no DOM da navega�
 | Aparência | Presets, fonte local, tamanho, cores, largura e redução opcional de movimento |
 | Navegação | Barra compacta, Novo chat, Recentes, Projects, configurações e retorno à sidebar |
 | Personas | CRUD, histórico de instruções, três imagens, seleção por aba/conversa e indicador visual |
-| Envio | Interceptação de botão/Enter/form, mutex entre abas, espera cancelável, recuperação explícita |
+| Envio | Interceptação de botão/Enter/form, concorrência com a mesma Persona, coordenação entre Personas diferentes, espera cancelável, recuperação explícita |
 | Estado visual | Estimativa idle/thinking/talking, inclusive alternância; estado unknown para DOM não reconhecido |
 | Chains | Criar/editar/excluir, adicionar/remover sessão, reordenar, marcar atual, Persona padrão, anterior/próxima |
 | Desempenho | `content-visibility: auto` reversível, preservação dos turnos recentes e métricas de custo do adapter |

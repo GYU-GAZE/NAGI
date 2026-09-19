@@ -1,6 +1,6 @@
 import { resolveHeader, headerControls, headerAction } from "../adapter/header";
 import { Marks } from "./marks";
-import { resolveModeControls } from "../adapter/modes";
+import { resolveModeControls, isModeSelectionPage } from "../adapter/modes";
 /** Fixed descendants can be local to transformed/contained ancestors, including scrollers. */
 export function fixedCoordinates(node: HTMLElement, x: number, y: number) {
   for (
@@ -108,7 +108,11 @@ export class ContextHeaderBridge {
         (e.matches("button,[role=button]") || headerAction(e) !== null),
     );
     this.modeControl =
-      modeSlot && header && modes.trigger && header.contains(modes.trigger)
+      modeSlot &&
+      isModeSelectionPage() &&
+      header &&
+      modes.trigger &&
+      header.contains(modes.trigger)
         ? modes.trigger
         : null;
     this.modeSlot = modeSlot ?? null;

@@ -11,6 +11,7 @@ export class ContextBar {
   constructor(
     private open: (kind: string) => void,
     prompts: HTMLElement,
+    private modeControl?: HTMLElement,
   ) {
     this.host.setAttribute("aria-label", "Contexto da conversa");
     this.nativeSlot.setAttribute("aria-label", "Ações do ChatGPT");
@@ -42,7 +43,9 @@ export class ContextBar {
       -1;
     const title =
       nativeContext.title ?? snapshot.conversation?.title ?? "Novo chat";
+    const modeVisible = !!this.modeControl && !this.modeControl.hidden;
     const key = JSON.stringify([
+      modeVisible,
       s.layout.contextBar,
       title,
       work,
@@ -70,7 +73,9 @@ export class ContextBar {
     const name = el("span", title, "chat-title");
     name.title = title;
     this.info.append(name);
-    if (work) this.info.append(el("span", "Work", "context-badge"));
+    if (this.modeControl) this.info.append(this.modeControl);
+    if (work && !modeVisible)
+      this.info.append(el("span", "Work", "context-badge"));
     if (chain) {
       const b = button(`Chain: ${chain.name}`, () => this.open("chains"));
       b.className = "context-badge";

@@ -12,7 +12,7 @@
 
 `background/coordinator.ts` é o único escritor dos dados persistentes. Toda leitura-modificação-gravação passa por uma fila serial. Rejeições não quebram a fila. Configurações aceitam patches validados; edições de Persona e Chain exigem a versão esperada, evitando que um editor antigo sobreponha outro.
 
-`storage.local.nagi`: schema 1, revisão, configurações, Personas com histórico, Chains com sessões. `storage.session`: trava global e seleções por ID de aba + caminho de conversa. Avatar é uma data URL local. Não há cópia de conteúdo das conversas no storage; títulos e URLs de sessões adicionadas manualmente são metadados locais.
+`storage.local.nagi`: schema 1, revisão, configurações, Personas com histórico, Chains com sessões. `storage.session`: conjunto de reservas de envio (`locks`) e seleções por ID de aba + caminho de conversa. Avatar é uma data URL local. Não há cópia de conteúdo das conversas no storage; títulos e URLs de sessões adicionadas manualmente são metadados locais.
 
 `migrate()` reconhece instalação nova, valida schema 1 e recusa schemas desconhecidos/corrompidos sem substituir dados por defaults. A primeira migração entre versões será adicionada quando surgir um schema 2 real. Limites atuais: 30 Personas, 100 Chains, 500 sessões/Chain e 8 MB no documento local total. Histórico não é apagado silenciosamente para caber na quota.
 
@@ -21,14 +21,14 @@
 1. Listener captura envio reconhecido por botão, Enter ou submit do composer.
 2. Confere Persona selecionada; com instruções e sem confirmação visual, bloqueia.
 3. Confere que o adapter estima idle.
-4. Solicita mutex ao background, com owner tabId + instanceId + token da transação.
+4. Solicita reserva ao background, com owner tabId + instanceId + token da transação. Abas diferentes com a mesma Persona podem coexistir; uma Persona diferente ou outra transação na mesma aba aguarda.
 5. Reconfere rascunho, composer, rota, flags e versão da Persona após a operação assíncrona.
 6. Libera exatamente um clique nativo; não recria a requisição nem copia o texto para APIs.
 7. Observa início de geração e só libera ao retornar a idle, ou em cancelamento anterior ao envio.
 
 A espera guarda o contexto no content script e só é iniciada por escolha explícita. Não persiste o rascunho. Cancelar, editar o texto, mudar de rota/Persona ou desabilitar o módulo invalida a espera, inclusive enquanto uma consulta assíncrona está em andamento.
 
-A trava não usa TTL. Suspensão do worker não perde ownership porque o lock fica em session storage. Fechamento/reload torna o owner órfão, mas não presume que a geração remota acabou. Liberação manual exige o token observado. Uma nova instância não pode liberar silenciosamente o lock de outra. Se o usuário navegar para outra conversa durante a resposta, o idle daquela conversa não libera a transação anterior.
+As reservas não usam TTL. Suspensão do worker não perde ownership porque o conjunto fica em session storage. A trava única de versões anteriores é migrada sem descartá-la. Consultas do envio usam seu próprio token; liberar uma reserva não libera as demais. Uma Persona diferente aguarda a liberação de todas as reservas do grupo atual. Fechamento/reload torna o owner órfão, mas não presume que a geração remota acabou. Liberação manual exige o token observado. Uma nova instância não pode liberar silenciosamente o lock de outra. Se o usuário navegar para outra conversa durante a resposta, o idle daquela conversa não libera a transação anterior.
 
 **Este protocolo NÃO aplica Custom Instructions.** É a fundação de concorrência, testada independentemente, para uma futura transação de read → backup → write → verify. A interface não informa “Persona aplicada” nem envia silenciosamente sob essa alegação. Abas externas ao protocolo, outros dispositivos, regeneração e voz não estão cobertos. Uma integração futura só deve escrever instruções após resolver esses limites.
 

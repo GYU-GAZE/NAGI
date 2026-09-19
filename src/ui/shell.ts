@@ -8,7 +8,8 @@ import { ContextBar } from "./context-bar";
 import { icon } from "./icons";
 import { networkCSS } from "./network-css";
 import { ModeSwitcher } from "./mode-switcher";
-import { resolveModeControls } from "../adapter/modes";
+import { resolveProjectsControl } from "../adapter/projects";
+import { isModeSelectionPage } from "../adapter/modes";
 import { HeaderIntegration } from "../features/header";
 import type { State, Selection, Chain, Phase } from "../shared/model";
 import type { ChatGPTAdapter, Snapshot } from "../adapter/chatgpt";
@@ -38,14 +39,12 @@ export class Shell {
   private header = new HeaderIntegration();
   private nativeContext = new ContextHeaderBridge();
   private auxiliaryPanels = new AuxiliaryPanels();
-  private modes = new ModeSwitcher(
-    () => void this.revealModes(),
-    (text) => this.message(text),
-  );
+  private modes = new ModeSwitcher((text) => this.message(text));
   private prompts = new PromptNavigator(() => this.open("prompts"));
   private context = new ContextBar(
     (kind) => this.open(kind),
     this.prompts.host,
+    this.modes.host,
   );
   private resizeObserver: ResizeObserver | null = null;
   private onResize = () => this.updateHeader();
@@ -179,7 +178,6 @@ export class Shell {
     home.append(icon("home"), el("span", "Início"));
     this.bar.append(
       brand,
-      this.modes.host,
       home,
       tool("Novo chat", "plus", () => this.ctx.adapter.newChat()),
       tool("Chats recentes", "recent", () => this.open("recent")),
@@ -235,7 +233,9 @@ export class Shell {
     const network =
       s.enabled && s.navigation === "topbar" && s.layout.variant === "network";
     const root = document.documentElement;
-    this.modes.update(network);
+    const canSwitchMode =
+      network && s.layout.contextBar && isModeSelectionPage();
+    this.modes.update(canSwitchMode);
     if (network) {
       this.header.refresh({ ...s, navigation: "native" }, 0);
       this.host.removeAttribute("data-nagi-header-shell");
@@ -249,7 +249,7 @@ export class Shell {
       const integrated = this.nativeContext.refresh(
         this.context.nativeSlot,
         true,
-        this.modes.nativeSlot,
+        canSwitchMode ? this.modes.nativeSlot : undefined,
       );
       this.modes.setDocked(integrated.modeDocked);
       const height =
@@ -268,36 +268,6 @@ export class Shell {
     }
     this.auxiliaryPanels.apply(network);
     this.isolated.resize();
-  }
-  private async revealModes() {
-    const { navigation, hideSidebar } = this.ctx.state().settings;
-    try {
-      const state = await this.ctx.client.mutate({
-        type: "settings",
-        patch: { navigation: "native", hideSidebar: false },
-      });
-      this.ctx.refresh(state);
-      this.close();
-      this.message("Escolha Chat ou Work na navegação original.", [
-        {
-          label: "Voltar ao layout nAGI",
-          run: () => {
-            void this.ctx.client
-              .mutate({ type: "settings", patch: { navigation, hideSidebar } })
-              .then((st) => {
-                this.ctx.refresh(st);
-                this.messages.replaceChildren();
-              })
-              .catch((e) => this.message(String(e)));
-          },
-        },
-      ]);
-      const trigger = resolveModeControls().trigger;
-      if (trigger && !trigger.matches(":disabled,[aria-disabled=true]"))
-        trigger.click();
-    } catch (e) {
-      this.message(String(e));
-    }
   }
   update(snapshot: Snapshot) {
     this.currentPhase = snapshot.phase;
@@ -340,6 +310,14 @@ export class Shell {
     this.lastFocus?.focus();
   }
   open(kind: string) {
+    if (kind === "projects" && !this.ctx.adapter.projects().length) {
+      const control = resolveProjectsControl();
+      if (control) {
+        this.close();
+        control.click();
+        return;
+      }
+    }
     if (this.menu === kind) {
       this.close();
       return;
@@ -385,25 +363,49 @@ export class Shell {
       body.append(
         list,
         note(
-          "Somente links já carregados na navegação do ChatGPT. A ordem acompanha o site.",
+          kind === "projects"
+            ? "Projetos encontrados na página e nos painéis do ChatGPT."
+            : "Conversas recentes disponíveis na navegação.",
         ),
       );
       if (!links.length)
         body.prepend(
           note(
-            "Nenhum link reconhecido. Abra a sidebar original para carregar a navegação.",
+            kind === "projects"
+              ? "O ChatGPT ainda não disponibilizou a lista de projetos nesta página."
+              : "Nenhum chat recente carregado nesta página.",
           ),
         );
+      if (kind === "projects")
+        body.append(
+          button("Atualizar projetos", () => {
+            this.menu = null;
+            this.open("projects");
+          }),
+        );
       body.append(
-        button("Abrir sidebar original", () => {
-          void this.ctx.client
-            .mutate({ type: "settings", patch: { hideSidebar: false } })
-            .then((s) => {
-              this.ctx.refresh(s);
-              this.ctx.adapter.showSidebar(true);
-            })
-            .catch((e) => this.message(String(e)));
-        }),
+        button(
+          kind === "projects"
+            ? "Carregar navegação de projetos"
+            : "Abrir sidebar original",
+          () => {
+            void this.ctx.client
+              .mutate({ type: "settings", patch: { hideSidebar: false } })
+              .then((s) => {
+                this.ctx.refresh(s);
+                this.ctx.adapter.showSidebar(true);
+                if (kind === "projects") {
+                  const toggle = document.querySelector<HTMLElement>(
+                    'button[aria-label="Open sidebar"],button[aria-label="Abrir barra lateral"]',
+                  );
+                  toggle?.click();
+                  this.menu = null;
+                  this.open("projects");
+                }
+              })
+              .catch((e) => this.message(String(e)));
+          },
+        ),
       );
     }
     if (kind === "prompts") this.prompts.renderList(body, () => this.close());

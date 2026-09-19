@@ -26,7 +26,7 @@ JSDOM testa eventos, DOM e lógica. **Não testa layout visual, renderização C
 1. Carregar build no Firefox e Chromium; conferir popup, permissões, console, navegação e opção de pausa.
 2. Em uma conversa descartável, confirmar composer/send/stop e estados no Diagnóstico. Usar sidebar original se os seletores não corresponderem.
 3. Criar Persona com instruções: primeiro envio deve permanecer no composer. Marcar “Somente visual” e confirmar que o texto é enviado uma única vez, sem prompt oculto.
-4. Abrir duas abas com Personas habilitadas. Enquanto A gera, tentar enviar em B: esperar/cancelar. Editar o rascunho em B durante a espera deve cancelar o envio.
+4. Abrir duas abas com Personas habilitadas. Enquanto A gera, enviar em B com a mesma Persona deve ser permitido. Com uma Persona diferente: esperar/cancelar. Editar o rascunho em B durante a espera deve cancelar o envio.
 5. Fechar/recarregar A durante geração. Verificar lock órfão e recuperação manual. Suspender o worker do Chromium e confirmar que a trava persiste.
 6. Testar ESC, navegação por teclado, IME, Enter e Shift+Enter; não presumir suporte a regeneração, edição ou voz.
 7. Recarregar conversa que pertence a uma Chain; verificar Persona padrão e memória. Adicionar, remover, reordenar e marcar atual. Confirmar que chats fora da Chain continuam fora dela.
@@ -84,3 +84,15 @@ Verificação manual: enviar um prompt curto e um longo; conferir alinhamento co
 72 testes locais, TypeScript e builds Firefox/Chromium. Novos casos: troca de modo pelos handlers nativos de uma sidebar oculta; nenhum clique durante a montagem; estado ativo do site; substituição de controles; modo indisponível; exclusão de links externos e conversas chamadas Chat/Work; cabeçalho inicial sem Share; docking do menu de modo com preservação de menu/eventos; fallback para navegação nativa e retorno ao nAGI; superfícies de sugestões e abas; conservação de imagens/rascunho/clicks; aplicação em menus novos; limpeza ao montar conversa ou pausar; diagnóstico sem texto das sugestões.
 
 Pendente no frontend autenticado: abrir a raiz chatgpt.com, alternar Chat/Work em ambos os sentidos, iniciar nova conversa, abrir/fechar menus e conferir a seleção nativa. Verificar saudação, sugestões, abas Projects/Files/Plugins e menus com Network/Papel e uma fonte personalizada. Confirmar que código e mídia continuam legíveis. Exportar diagnóstico 0.2.3 caso o seletor use o fallback ou alguma superfície fique com o tema antigo.
+
+## Regressões 0.2.4
+
+78 testes locais passaram. O teste de app exige que o seletor esteja dentro de context-info, imediatamente após o título, e ausente da barra de ferramentas. Verifica transições entre conversa, raiz vazia, primeira mensagem ainda na raiz e rota de conversa sem mensagens carregadas. Navegação/sidebar permanecem intactas. O teste do menu nativo verifica remoção do docking ao entrar em uma conversa. Um botão retido entre atualizações não aciona o modo fora da página inicial nem abre recuperação quando seu controle nativo desaparece.
+
+Confirmação visual pendente no Firefox: posição ao lado de Novo chat e ausência do seletor durante a conversa. Não há fallback automático para navegação original nesta revisão.
+
+Os casos adicionais cobrem reservas simultâneas da mesma Persona, bloqueio entre Personas diferentes, liberação por token, reinício do worker, migração da trava antiga e recuperação sem remover outras reservas. Projects é testado fora da sidebar, com exclusão de links em mensagens/externos e abertura do controle nativo apenas por clique do usuário. Controles de formulário sem tipo seguro são rejeitados.
+
+A fixture de raciocínio mantém avatares nos blocos anteriores após novas etapas, resposta final e idle. O CSS inicial é verificado antes da criação do body, com paleta salva, preferência de sidebar, pausa, falha de storage e limpeza de marcas. Ambos os manifests usam `document_start` e incluem `early.css`.
+
+Pendente no Firefox autenticado: conferir avatar ao lado do tempo/raciocínio e persistência visual entre etapas; abrir Projects e navegar por um projeto real; enviar em duas abas com a mesma Persona; observar primeiro carregamento com diferentes temas. JSDOM não mede pintura inicial, layout CSS real nem garante os seletores da conta.

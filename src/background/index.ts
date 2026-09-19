@@ -34,7 +34,9 @@ chrome.runtime.onMessage.addListener((m, sender, sendResponse) => {
       case "mutate":
         return coordinator.mutate(m.command);
       case "lock.get":
-        return coordinator.lock();
+        return coordinator.lock(
+          typeof m.token === "string" ? m.token : undefined,
+        );
       case "lock.recover":
         return coordinator.recover(m.token);
       case "hello":
