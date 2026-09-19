@@ -1,67 +1,72 @@
 npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
 
-> nagi-extension@0.1.1 check
+> nagi-extension@0.1.2 check
 > npm run typecheck && npm test && npm run build
 
 npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
 
-> nagi-extension@0.1.1 typecheck
+> nagi-extension@0.1.2 typecheck
 > tsc --noEmit
 
 npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
 
-> nagi-extension@0.1.1 test
+> nagi-extension@0.1.2 test
 > node --import tsx --test tests/*.test.ts
 
-✔ full app mounts compact controls, theme/performance are independent and pause restores native DOM (217.92813ms)
-✔ persona editor persists literal untrusted text and exposes instructions as unapplied (150.984137ms)
-✔ chain editor adds the open chat, stores order metadata and restores selection (106.02166ms)
-✔ editing inside options never reaches native ChatGPT keyboard handlers or its composer (66.035754ms)
-✔ shared diagnostics can be copied from isolated panel without private conversation data (120.151956ms)
-✔ concurrent lock acquisition has exactly one winner (3.988397ms)
-✔ lock persists through service worker reconstruction without expiry (0.35522ms)
-✔ a different tab cannot release another transaction (0.732728ms)
-✔ stale instance and stale token cannot release replacement lock (0.459694ms)
-✔ reload marks owner orphaned and never automatically releases (0.517624ms)
-✔ hello from same instance leaves ownership intact (0.443516ms)
-✔ explicit recovery checks expected token and allows next owner (0.581503ms)
-✔ generation marker and matching release operate on persisted state (0.373316ms)
-✔ serialized independent settings edits survive concurrent writes (1.233069ms)
-✔ failed transaction does not poison writer queue or storage (0.431817ms)
-✔ future/corrupt schemas never silently reset (1.026237ms)
-✔ persona edit conflict preserves newer version and instruction history (1.288668ms)
-✔ chain ordering and current session are explicit and persisted (0.746601ms)
-✔ duplicate sessions and dangling current session are rejected (0.338022ms)
-✔ concurrent stale chain edits fail instead of losing organization (0.64963ms)
-✔ deleting persona clears chain defaults without deleting chats (0.728616ms)
-✔ persona selection is isolated by both tab and route (0.447364ms)
-✔ remote avatars, SVG and malicious CSS/URLs are rejected (0.451412ms)
-✔ generation can alternate thinking and talking repeatedly (0.202931ms)
-✔ missing composer is unknown and never idle completion (0.068047ms)
-✔ transient missing stop does not signal generation completion (0.088472ms)
-✔ adapter recognizes semantic candidates, separate nav and reversible sidebar (91.739893ms)
-✔ unknown DOM yields unknown state and safe empty navigation (10.642471ms)
-✔ Shift+Enter, composing and unrelated inputs are not intercepted (11.133197ms)
-✔ instruction-bearing persona blocks original send without visual-only consent (17.739839ms)
-✔ explicit visual-only sends exactly once and keeps lock through generation (31.932757ms)
-✔ editing draft while acquiring lock aborts send and releases reservation (11.617898ms)
-✔ draft changed during queue availability check is never submitted (18.998548ms)
-✔ navigating away after generation starts holds lock instead of treating unrelated idle as completion (32.416223ms)
-✔ sidebar collapse removes the entire reserved slot, history, account footer and rail, then restores it (140.91926ms)
-✔ unknown sidebar ID can be found from navigation structure without hiding chat message navigation (13.285528ms)
-✔ composer covers editor and tool wrappers, does not repaint the conversation and cleans replaced nodes (23.845342ms)
-✔ diagnostic report is allowlisted and excludes text, raw HTML, URLs and private settings/entities (39.674396ms)
-ℹ tests 38
+✔ full app mounts compact controls, theme/performance are independent and pause restores native DOM (251.198428ms)
+✔ persona editor persists literal untrusted text and exposes instructions as unapplied (196.172574ms)
+✔ chain editor adds the open chat, stores order metadata and restores selection (97.968394ms)
+✔ editing inside options never reaches native ChatGPT keyboard handlers or its composer (76.8832ms)
+✔ shared diagnostics can be copied from isolated panel without private conversation data (110.460437ms)
+✔ concurrent lock acquisition has exactly one winner (4.338725ms)
+✔ lock persists through service worker reconstruction without expiry (0.276441ms)
+✔ a different tab cannot release another transaction (0.784307ms)
+✔ stale instance and stale token cannot release replacement lock (0.636628ms)
+✔ reload marks owner orphaned and never automatically releases (0.564974ms)
+✔ hello from same instance leaves ownership intact (0.372147ms)
+✔ explicit recovery checks expected token and allows next owner (0.457468ms)
+✔ generation marker and matching release operate on persisted state (0.416682ms)
+✔ serialized independent settings edits survive concurrent writes (1.605988ms)
+✔ failed transaction does not poison writer queue or storage (0.624374ms)
+✔ future/corrupt schemas never silently reset (1.641388ms)
+✔ persona edit conflict preserves newer version and instruction history (2.278232ms)
+✔ chain ordering and current session are explicit and persisted (1.212804ms)
+✔ duplicate sessions and dangling current session are rejected (0.457367ms)
+✔ concurrent stale chain edits fail instead of losing organization (2.076648ms)
+✔ deleting persona clears chain defaults without deleting chats (1.811078ms)
+✔ persona selection is isolated by both tab and route (0.535592ms)
+✔ remote avatars, SVG and malicious CSS/URLs are rejected (0.621982ms)
+✔ generation can alternate thinking and talking repeatedly (0.242498ms)
+✔ missing composer is unknown and never idle completion (0.110251ms)
+✔ transient missing stop does not signal generation completion (0.100616ms)
+✔ adapter recognizes semantic candidates, separate nav and reversible sidebar (159.423754ms)
+✔ unknown DOM yields unknown state and safe empty navigation (20.662058ms)
+✔ Shift+Enter, composing and unrelated inputs are not intercepted (20.805726ms)
+✔ instruction-bearing persona blocks original send without visual-only consent (23.80809ms)
+✔ explicit visual-only sends exactly once and keeps lock through generation (42.54836ms)
+✔ editing draft while acquiring lock aborts send and releases reservation (17.610265ms)
+✔ draft changed during queue availability check is never submitted (23.461481ms)
+✔ navigating away after generation starts holds lock instead of treating unrelated idle as completion (30.990899ms)
+✔ Work fallback resolves the shallow top bar, never conversation or right panel (131.998786ms)
+✔ native actions and popover anchors survive integration; theme and two-row sizing are independent (28.217513ms)
+✔ pause, native navigation and disposal restore the original header without stale marks (20.397421ms)
+✔ React header replacement removes marks from old nodes and integrates the replacement (11.245214ms)
+✔ header diagnostics expose action categories and geometry without titles, labels or IDs (67.325944ms)
+✔ sidebar collapse removes the entire reserved slot, history, account footer and rail, then restores it (143.327861ms)
+✔ unknown sidebar ID can be found from navigation structure without hiding chat message navigation (12.8555ms)
+✔ composer covers editor and tool wrappers, does not repaint the conversation and cleans replaced nodes (29.624682ms)
+✔ diagnostic report is allowlisted and excludes text, raw HTML, URLs and private settings/entities (45.522156ms)
+ℹ tests 43
 ℹ suites 0
-ℹ pass 38
+ℹ pass 43
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 1579.402119
+ℹ duration_ms 1720.811481
 npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
 
-> nagi-extension@0.1.1 build
+> nagi-extension@0.1.2 build
 > node scripts/build.mjs
 
 Built dist/chromium and dist/firefox

@@ -88,7 +88,18 @@ html,body{margin:0;padding:0;background:#182131;overflow:hidden}
   }
   resize() {
     const width = Math.min(650, Math.max(240, window.innerWidth - 24));
-    const maximum = Math.max(160, window.innerHeight - 100);
+    const integrated = document.documentElement.hasAttribute(
+      "data-nagi-header-active",
+    );
+    const panelTop = integrated
+      ? document.documentElement.hasAttribute("data-nagi-header-stacked")
+        ? 120
+        : 68
+      : 60;
+    const maximum = Math.max(
+      160,
+      window.innerHeight - (this.native ? 100 : panelTop + 24),
+    );
     this.frame.style.width = `${width}px`;
     this.frame.contentDocument?.documentElement.style.setProperty(
       "--nagi-panel-body-height",
@@ -99,7 +110,7 @@ html,body{margin:0;padding:0;background:#182131;overflow:hidden}
       ? "auto"
       : `${Math.max(12, (window.innerWidth - width) / 2)}px`;
     this.frame.style.right = this.native ? "16px" : "auto";
-    this.frame.style.top = this.native ? "auto" : "60px";
+    this.frame.style.top = this.native ? "auto" : `${panelTop}px`;
     this.frame.style.bottom = this.native ? "64px" : "auto";
   }
   dispose() {

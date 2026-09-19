@@ -48,3 +48,9 @@ A fixture contém um ensaio reproduzível de scroll com OFF/ON/ON/OFF, 200 inter
 - Exportação de diagnóstico contém configurações e estrutura, mas não textos de mensagem, rascunhos, URLs, IDs/nomes de entidades, instruções, avatares ou propriedades futuras desconhecidas.
 
 A confirmação visual no Firefox real continua pendente do exemplo do usuário.
+
+## Regressões 0.1.2
+
+43 testes locais (Node + JSDOM): inclui reconhecimento do cabeçalho Work sem ID conhecido, exclusão da conversa/painel lateral, preservação de nós/pais/eventos dos controles, nenhum click automático, exclusão dos itens de menus, largura que ativa duas linhas, pausa/navegação nativa/dispose, substituição do cabeçalho e privacidade do diagnóstico. O teste de app verifica a integração junto com tema, sidebar, performance e pausa. JSDOM não valida renderização CSS; dimensões das fixtures são simuladas.
+
+Validação manual pendente no frontend do usuário: confirmar que não sobra faixa preta; testar Share (abrir e cancelar), menu (abrir e fechar), Files and Sources (abrir/fechar), título/Work, título longo, sidebar aberta, zoom/janela estreita e troca de chat. Conferir que menus e diálogos ficam acima da barra, que as opções não cobrem as ferramentas em duas linhas e que pausar restaura o cabeçalho. Enviar diagnóstico 0.1.2 e print para comparação.

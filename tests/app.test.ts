@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
+import { VERSION } from "../src/shared/version.ts";
 import { startApp } from "../src/app.ts";
 import { Coordinator, type KV } from "../src/background/coordinator.ts";
 import type { Client } from "../src/shared/platform.ts";
@@ -8,7 +9,7 @@ import type { State, Command, Selection } from "../src/shared/model.ts";
 const tick = () => new Promise((resolve) => setTimeout(resolve, 30));
 async function fixture() {
   const dom = new JSDOM(
-    '<!doctype html><body><nav id="history"><a href="/c/test">Test</a></nav><main></main><form><textarea id="prompt-textarea"></textarea><button type="button" data-testid="send-button">Send</button></form></body>',
+    '<!doctype html><body><header id="page-header"><span>Test · Work</span><button>Share</button><button aria-label="Files and sources">Files</button></header><nav id="history"><a href="/c/test">Test</a></nav><main></main><form><textarea id="prompt-textarea"></textarea><button type="button" data-testid="send-button">Send</button></form></body>',
     { url: "https://chatgpt.com/c/test" },
   );
   for (const key of [
@@ -37,6 +38,20 @@ async function fixture() {
   dom.window.HTMLElement.prototype.getClientRects = function () {
     return { length: 1 } as DOMRectList;
   };
+  document.querySelector<HTMLElement>("#page-header")!.getBoundingClientRect =
+    () => ({
+      x: 0,
+      y: 0,
+      left: 0,
+      right: 1024,
+      top: 0,
+      bottom: 48,
+      width: 1024,
+      height: 48,
+      toJSON() {
+        return {};
+      },
+    });
   for (let i = 0; i < 40; i++) {
     const a = document.createElement("article");
     a.dataset.testid = `conversation-turn-${i}`;
@@ -114,6 +129,16 @@ test("full app mounts compact controls, theme/performance are independent and pa
       document.documentElement.hasAttribute("data-nagi-theme"),
       false,
     );
+    assert.equal(
+      document.querySelector("#page-header")!.hasAttribute("data-nagi-header"),
+      true,
+    );
+    assert.equal(
+      document
+        .querySelector("#nagi-root")!
+        .hasAttribute("data-nagi-header-shell"),
+      true,
+    );
     assert.equal(document.querySelectorAll("[data-nagi-contain]").length, 0);
     await f.client.mutate({
       type: "settings",
@@ -137,6 +162,16 @@ test("full app mounts compact controls, theme/performance are independent and pa
     assert.equal(document.querySelectorAll("[data-nagi-contain]").length, 0);
     assert.equal(
       document.querySelector("#history")?.hasAttribute("data-nagi-sidebar"),
+      false,
+    );
+    assert.equal(
+      document.querySelector("#page-header")!.hasAttribute("data-nagi-header"),
+      false,
+    );
+    assert.equal(
+      document
+        .querySelector("#nagi-root")!
+        .hasAttribute("data-nagi-header-shell"),
       false,
     );
     assert.equal(f.root.querySelectorAll("nav button").length, 1);
@@ -267,7 +302,7 @@ test("shared diagnostics can be copied from isolated panel without private conve
         'textarea[aria-label="Diagnóstico para copiar"]',
       )!.value,
     );
-    assert.equal(report.extensionVersion, "0.1.1");
+    assert.equal(report.extensionVersion, VERSION);
     assert.equal(report.matches.composer, true);
     assert.equal(JSON.stringify(report).includes("PRIVATE DRAFT"), false);
     assert.equal(report.active.panelFrame, true);

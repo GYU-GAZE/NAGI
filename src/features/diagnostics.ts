@@ -1,4 +1,5 @@
 import type { State } from "../shared/model";
+import { resolveHeader, headerControls, headerAction } from "../adapter/header";
 import { VERSION } from "../shared/version";
 import { resolveRegions } from "../adapter/regions";
 import { selectors as S } from "../adapter/selectors";
@@ -70,7 +71,9 @@ function elementDescription(el: Element) {
     marks: [...el.attributes]
       .map((a) => a.name)
       .filter((k) =>
-        /^data-nagi-(?:surface|sidebar|composer-(?:layer|root|outer))$/.test(k),
+        /^data-nagi-(?:header(?:-layer|-layout|-part|-control)?|surface|sidebar|composer-(?:layer|root|outer))$/.test(
+          k,
+        ),
       ),
     rect: {
       x: count(rect.x),
@@ -110,6 +113,7 @@ function ancestors(el: Element | null) {
 }
 export function createDiagnosticReport(state: State, doc: Document = document) {
   const r = resolveRegions(doc);
+  const header = resolveHeader(doc);
   const win = doc.defaultView;
   const browser =
     win?.navigator.userAgent.match(/(?:Firefox|Edg|Chrome)\/[\d.]+/)?.[0] ??
@@ -120,7 +124,7 @@ export function createDiagnosticReport(state: State, doc: Document = document) {
   const root = doc.documentElement;
   return {
     format: "nagi-diagnostics",
-    formatVersion: 1,
+    formatVersion: 2,
     extensionVersion: VERSION,
     createdAt: new Date().toISOString(),
     privacy:
@@ -165,6 +169,8 @@ export function createDiagnosticReport(state: State, doc: Document = document) {
       turns: doc.querySelectorAll(S.turn).length,
     },
     active: {
+      headerIntegration: root.hasAttribute("data-nagi-header-active"),
+      headerStacked: root.hasAttribute("data-nagi-header-stacked"),
       theme: root.hasAttribute("data-nagi-theme"),
       sidebarCollapse: root.hasAttribute("data-nagi-sidebar-collapsed"),
       panelFrame: !!doc.querySelector("#nagi-panel-frame"),
@@ -172,6 +178,10 @@ export function createDiagnosticReport(state: State, doc: Document = document) {
         .length,
     },
     matches: {
+      header: !!header,
+      headerControls: headerControls(header).map(
+        (e) => headerAction(e) ?? "other",
+      ),
       composer: !!r.composer,
       composerRoot: !!r.composerRoot,
       sidebar: r.sidebar.length,
@@ -179,6 +189,10 @@ export function createDiagnosticReport(state: State, doc: Document = document) {
       outerLayers: r.composerOuter.length,
     },
     regions: {
+      headerAncestors: ancestors(header).slice(0, 5),
+      headerChildren: header
+        ? [...header.children].slice(0, 12).map(elementDescription)
+        : [],
       composerAncestors: ancestors(r.composer),
       sidebarRoots: r.sidebar.map(elementDescription),
       sidebarAncestors: r.sidebar.map((s) => ancestors(s).slice(0, 5)),

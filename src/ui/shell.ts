@@ -1,6 +1,7 @@
 import { el, button, select, checkbox, note, uiCSS } from "./dom";
 import { SettingsUI, type SettingsContext } from "./settings";
 import { IsolatedPanel } from "./isolated-panel";
+import { HeaderIntegration } from "../features/header";
 import type { State, Selection, Chain, Phase } from "../shared/model";
 import type { ChatGPTAdapter, Snapshot } from "../adapter/chatgpt";
 import type { Client } from "../shared/platform";
@@ -26,6 +27,8 @@ export class Shell {
   private menu: string | null = null;
   private lastFocus: HTMLElement | null = null;
   private currentPhase: Phase = "unknown";
+  private header = new HeaderIntegration();
+  private onResize = () => this.updateHeader();
   constructor(private ctx: ShellContext) {
     this.host.dataset.nagiOwned = "shell";
     this.host.id = "nagi-root";
@@ -41,6 +44,7 @@ export class Shell {
     this.shadow.append(style, this.bar, this.messages);
     document.body.append(this.host);
     this.isolated = new IsolatedPanel(this.panel, () => this.close());
+    window.addEventListener("resize", this.onResize);
     this.shadow.addEventListener("keydown", (e) => {
       if ((e as KeyboardEvent).key === "Escape") {
         this.close();
@@ -64,6 +68,7 @@ export class Shell {
           "⚙",
         ),
       );
+      this.updateHeader();
       return;
     }
     this.bar.append(
@@ -107,8 +112,18 @@ export class Shell {
       button("Configurações", () => this.open("settings"), "⚙"),
       button("Pausar nAGI", () => this.ctx.pause(), "⏻"),
     );
+    this.updateHeader();
+  }
+  private updateHeader() {
+    const integrated = this.header.refresh(
+      this.ctx.state().settings,
+      this.bar.getBoundingClientRect().width,
+    );
+    this.host.toggleAttribute("data-nagi-header-shell", integrated);
+    this.isolated.resize();
   }
   update(snapshot: Snapshot) {
+    this.updateHeader();
     this.currentPhase = snapshot.phase;
     this.updateIdentity();
   }
@@ -361,6 +376,8 @@ export class Shell {
     );
   }
   dispose() {
+    window.removeEventListener("resize", this.onResize);
+    this.header.dispose();
     this.isolated.dispose();
     this.host.remove();
   }

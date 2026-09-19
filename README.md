@@ -1,8 +1,18 @@
-# nAGI · 0.1.1
+# nAGI · 0.1.2
 
 Extensão modular para o **ChatGPT Web oficial**. Sem API key, backend próprio, telemetria ou alteração automática das instruções da conta.
 
-**Este pacote é um primeiro marco experimental.** Compila e passa pelos testes locais, mas seus seletores ainda precisam ser validados no ChatGPT autenticado. O ambiente de desenvolvimento encontrou uma verificação humana no ChatGPT e não conseguiu abrir a fixture no navegador remoto. Isso impede afirmar compatibilidade real ou ganho de renderização neste momento.
+**Este pacote é experimental.** O usuário confirmou as correções de digitação, sidebar e composer da 0.1.1 em seu ChatGPT Work/Firefox e enviou print e diagnóstico. A integração do cabeçalho da 0.1.2 passa pelos testes locais, mas ainda precisa de confirmação visual nesse frontend. O ambiente de desenvolvimento não teve acesso ao ChatGPT autenticado; não há medição real de ganho de renderização.
+
+## Atualização 0.1.2 · cabeçalho integrado
+
+- No modo barra superior, o cabeçalho detectado recebe a superfície, fonte e cores do nAGI: título/Work à esquerda, ferramentas nAGI ao centro e ações do chat à direita. O fundo preto, bordas e sombras nativas dessa região são normalizados.
+- Compartilhar, menu e Files and Sources continuam sendo os controles reais do site, com os mesmos eventos e âncoras de menus. Nenhuma ação é executada automaticamente e nenhum controle é clonado ou movido na árvore do site.
+- Com pouco espaço, as ferramentas nAGI passam para uma segunda linha. O painel de configurações abre abaixo das duas linhas.
+- Pausar ou selecionar navegação nativa restaura a apresentação original. Se nenhum cabeçalho seguro for reconhecido, ele permanece intacto e a barra compacta nAGI continua disponível.
+- O diagnóstico agora inclui a detecção do cabeçalho, geometria e categorias de ações. Não inclui título da conversa nem rótulos privados.
+
+O painel de arquivos/fontes continua sendo o painel funcional do ChatGPT. Esta revisão integra seu botão de acesso ao cabeçalho nAGI; o layout final será definido pelo mockup do usuário.
 
 ## Atualização 0.1.1 · correções de interface
 
@@ -22,7 +32,7 @@ Para atualizar preservando os dados, feche os painéis nAGI, substitua os arquiv
 
 O diagnóstico é gerado e baixado localmente. Nada é enviado automaticamente. Ele não é um backup de Personas/Chains nem um export de chats. Não envie HTML bruto, cookies, storage do site ou arquivos HAR.
 
-Ainda precisamos desse exemplo real para confirmar que as regiões detectadas correspondem à versão do ChatGPT no seu navegador. Os testes automatizados cobrem a estrutura e os eventos, mas não comprovam que toda camada visual nativa foi substituída no frontend real.
+O exemplo da 0.1.1 já confirmou as regiões anteriores no navegador do usuário. Para a nova integração do cabeçalho, envie um novo JSON + print após atualizar. Os testes automatizados cobrem a estrutura e os eventos, mas não comprovam que toda camada visual nativa foi substituída no frontend real.
 
 ## Instalar para testar
 

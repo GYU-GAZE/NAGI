@@ -45,3 +45,13 @@ Essas referências sustentam as escolhas de plataforma, não validam os seletore
 O usuário relatou interferência do composer ao digitar nas opções, sidebar que não some e camadas/bordas pretas no composer. A revisão troca os painéis editáveis por um documento isolado e expande a aplicação visual de um seletor pontual para regiões estruturais. Esses relatos não fornecem o DOM exato, portanto os novos seletores continuam candidatos até receber o diagnóstico + screenshot do navegador real.
 
 O relatório exportável permite comparar configurações solicitadas, marcas aplicadas, containers reconhecidos, posições, fundos, bordas, sombras e pseudo-elementos. Ele omite texto e atributos livres; não é um dump de DOM.
+
+## Cabeçalho · 0.1.2
+
+O print e diagnóstico da 0.1.1 confirmaram tema ativo, sidebar ocultada e composer reconhecido (13 camadas internas e 8 externas), em Firefox 155, viewport 2338 × 1171. O usuário confirmou que as correções funcionaram. O relatório anterior não registrava o DOM do cabeçalho. Seus seletores continuam sendo candidatos, não observações de DOM autenticado.
+
+`adapter/header.ts` procura cabeçalhos sem conversa, composer ou painel lateral; para a variante Work em div, exige Share/Compartilhar e outro controle em uma faixa larga e baixa no topo. Cabeçalhos dentro de mensagens, navegação lateral, menus e diálogos são excluídos. `features/header.ts` aplica marcas reversíveis às superfícies e controles, preservando nós e eventos nativos. Nenhum click é disparado pela integração. Mudanças de rota/substituição do cabeçalho são reavaliadas pelo observer existente. As marcas saem de nós antigos, na pausa, na navegação nativa e no descarte.
+
+A barra nAGI usa o centro da largura disponível do cabeçalho. Abaixo de 1100 px (ou se as ferramentas exigirem mais espaço) o cabeçalho recebe duas linhas. O tema ativo fornece cor do campo, texto e fonte; com tema desligado, usa a paleta própria da barra nAGI. Menus e diálogos não são normalizados como botões do cabeçalho. Os controles permanecem no documento original para preservar eventos pointer/teclado e âncoras de popovers; o editor de opções continua isolado no iframe.
+
+Limitações: não houve renderização autenticada desta revisão. Um frontend sem hooks semânticos ou sem Share reconhecível pode não ser detectado, preservando o cabeçalho. O diagnóstico formato 2 inclui apenas geometria/estilos e categorias fixas (share/menu/files/other), nunca títulos ou rótulos completos. Os zero turns no relatório do Work também indicam que o seletor de mensagens não foi validado para essa variante; isso não foi alterado por esta revisão do cabeçalho.
