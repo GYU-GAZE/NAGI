@@ -1,6 +1,6 @@
 import { resolveChatRows } from "./navigation";
 import { resolveProjects } from "./projects";
-import { resolveMessages } from "./messages";
+import { resolveMessages, resolveTurns } from "./messages";
 import { selectors as S } from "./selectors";
 import { GenerationTracker } from "./generation";
 import { resolveRegions } from "./regions";
@@ -44,12 +44,9 @@ export class DOMChatGPTAdapter implements ChatGPTAdapter {
     return document.querySelector<HTMLButtonElement>(S.send);
   }
   turns() {
-    const legacy = [...document.querySelectorAll<HTMLElement>(S.turn)];
-    const additional = resolveMessages()
-      .map((r) => r.turn)
-      .filter((node) => !legacy.some((t) => t.contains(node)));
-    return [...new Set([...legacy, ...additional])];
+    return resolveTurns();
   }
+
   private visible(el: HTMLElement | null) {
     return !!el && !el.hidden && el.getClientRects().length > 0;
   }

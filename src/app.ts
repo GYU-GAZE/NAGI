@@ -1,6 +1,6 @@
 import { PromptHistory } from "./features/prompt-history";
 import type { Continuation } from "./conversation/handoff";
-import { writeDraft } from "./features/composer-draft";
+import { readDraft, writeDraft } from "./features/composer-draft";
 import { ConversationService } from "./conversation/service";
 import type { Client } from "./shared/platform";
 import {
@@ -29,7 +29,13 @@ export async function startApp(client: Client) {
   let routeEpoch = 0;
   let selectionReady = false;
   let continuation:Continuation|null=null, continuationHome=false, continuationSent=false, continuationInserted=false, continuationBusy=false;
-  const observeSend=(event:Event)=>{if(!event.defaultPrevented&&continuationHome&&adapter.isSendEvent(event))continuationSent=true;};
+  const observeSend=(event:Event)=>{
+    if(current.settings.enabled&&!event.defaultPrevented&&adapter.isSendEvent(event)){
+      const composer=adapter.composer();if(composer)conversations.index.expectPrompt(readDraft(composer));
+      if(continuationHome)continuationSent=true;
+    }
+  };
+  const cancelContinuationNavigation=(event:Event)=>{const anchor=(event.target as Element)?.closest?.('a[href]');if(anchor&&/\/c\//.test(anchor.getAttribute('href')||'')){continuationSent=false;continuationHome=false;}};
   const conversations = new ConversationService(client,state.indexGeneration);
   const adapter = new DOMChatGPTAdapter();
   const appearance = new Appearance();
@@ -167,7 +173,8 @@ export async function startApp(client: Client) {
   for (const t of ["keydown", "click", "submit"])
     window.addEventListener(t, bootGuard, true);
   guard.install();
-  for(const t of ["click","keydown","submit"])window.addEventListener(t,observeSend);
+  window.addEventListener("click",cancelContinuationNavigation,true);
+  for(const t of ["click","keydown","submit"])window.addEventListener(t,observeSend,true);
   void client.request<Continuation|null>("continuation").then(p=>{continuation=p;}).catch(()=>{});
   await client.request("hello");
   const unsubscribe = client.subscribe(refresh);
@@ -175,7 +182,7 @@ export async function startApp(client: Client) {
   const stop = adapter.observe((snapshot) => {
     const old = latest;
     latest = snapshot;
-    conversations.update(snapshot.conversation?.id ?? null);
+    if(current.settings.enabled)conversations.update(snapshot.conversation?.id ?? null);
     if(!snapshot.conversation && !continuationBusy) {
       continuationBusy=true;
       void client.request<Continuation|null>("continuation").then(async p=>{
@@ -258,7 +265,8 @@ export async function startApp(client: Client) {
       conversations.dispose();
       unsubscribe();
       guard.dispose();
-      for(const t of ["click","keydown","submit"])window.removeEventListener(t,observeSend);
+      window.removeEventListener("click",cancelContinuationNavigation,true);
+      for(const t of ["click","keydown","submit"])window.removeEventListener(t,observeSend,true);
       composerIdentity.dispose();
       messages.dispose();
       layout.dispose();

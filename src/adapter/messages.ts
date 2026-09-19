@@ -1,3 +1,4 @@
+import { selectors as S } from "./selectors";
 /** Explicit semantic hooks shared by cards, prompt navigation and diagnostics. */
 export const messageSelector =
   '[data-message-author-role="user"],[data-message-author-role="assistant"],[data-message-role="user"],[data-message-role="assistant"],[data-testid="user-message"],[data-testid="assistant-message"]';
@@ -6,12 +7,21 @@ export interface MessageRegion {
   turn: HTMLElement;
   role: "user" | "assistant";
 }
+const turnSources = new WeakMap<Document,()=>HTMLElement[]>();
 const sources = new WeakMap<Document, () => MessageRegion[]>();
-export function registerMessageSource(doc: Document, read: () => MessageRegion[]) {
-  sources.set(doc, read); return () => sources.delete(doc);
+export function registerMessageSource(doc: Document, read: () => MessageRegion[], turns?:()=>HTMLElement[]) {
+  sources.set(doc, read);if(turns)turnSources.set(doc,turns); return () => {sources.delete(doc);turnSources.delete(doc);};
 }
 export function resolveMessages(doc: Document = document): MessageRegion[] {
   return sources.get(doc)?.() ?? scanMessages(doc);
+}
+export function resolveTurns(doc:Document=document):HTMLElement[] {
+ return turnSources.get(doc)?.() ?? combineTurns([...doc.querySelectorAll<HTMLElement>(S.turn)],resolveMessages(doc));
+}
+export function combineTurns(legacy:HTMLElement[],messages:MessageRegion[]) {
+ const turns=new Set(legacy);
+ for(const {turn} of messages){let parent:HTMLElement|null=turn;while(parent&&!turns.has(parent))parent=parent.parentElement;if(!parent)turns.add(turn);}
+ return [...turns];
 }
 export function scanMessages(doc: Document = document, root: Document | Element = doc): MessageRegion[] {
   const candidates = [

@@ -9,6 +9,7 @@ export class ConversationService {
  private listeners = new Set<()=>void>();
  private epoch=0;
  private timer?: ReturnType<typeof setTimeout>;
+ private lastRegions?:ReturnType<MessageRegistry["read"]>;
  private stopped=false;
  private ready=false;
  constructor(private client:Client,private generation=0) {}
@@ -22,7 +23,7 @@ export class ConversationService {
  update(id:string|null) {
   const key=id||'draft';
   if(this.index.conversationId!==key) {
-   void this.flush(); this.index=new ConversationIndex(key);const epoch=++this.epoch;this.ready=!id;
+   void this.flush(); this.index=new ConversationIndex(key);this.lastRegions=undefined;const epoch=++this.epoch;this.ready=!id;
    if(id) void this.client.request<ConversationData>('index.load',{conversationId:id}).then(data=>{
     if(epoch!==this.epoch||this.stopped)return;
     if(!data || !Array.isArray(data.messages)) throw new Error('Persistência indisponível');
@@ -35,9 +36,12 @@ export class ConversationService {
  capture(force=false) {
   const regions=this.registry.read(), changed=this.registry.takeChanged();
   if(!this.ready && this.index.conversationId!=='draft')return;
+  if(!force&&regions===this.lastRegions&&!changed.size)return;
+  this.lastRegions=regions;
   const before=this.index.revision;
   this.index.capture(regions,force?undefined:changed);
-  if(before!==this.index.revision) {this.emit();clearTimeout(this.timer);this.timer=setTimeout(()=>void this.flush(),700);}
+  this.emit();
+  if(before!==this.index.revision) {clearTimeout(this.timer);this.timer=setTimeout(()=>void this.flush(),700);}
  }
  async flush() {
   clearTimeout(this.timer);const index=this.index;
