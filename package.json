@@ -16,6 +16,7 @@
     "@types/jsdom": "^21.1.7",
     "@types/node": "^24.0.0",
     "esbuild": "0.28.2",
+    "fake-indexeddb": "^6.2.5",
     "jsdom": "^26.1.0",
     "prettier": "3.6.2",
     "tsx": "^4.20.0",

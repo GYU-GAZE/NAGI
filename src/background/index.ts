@@ -1,3 +1,5 @@
+import { ConversationStore } from "../conversation/storage";
+const conversations = new ConversationStore();
 import { Coordinator, type KV } from "./coordinator";
 import type { Selection } from "../shared/model";
 const area = (storage: chrome.storage.StorageArea): KV => ({
@@ -29,6 +31,12 @@ chrome.runtime.onMessage.addListener((m, sender, sendResponse) => {
   async function handle() {
     const owner = { tabId: tabId!, instanceId: String(m.instanceId) };
     switch (m.type) {
+      case "index.load":
+        if (typeof m.conversationId !== "string" || m.conversationId.length > 200) throw new Error("Conversa inválida");
+        return conversations.load(m.conversationId);
+      case "index.write": return conversations.write(m.messages, m.annotations ?? []);
+      case "index.preference": return conversations.preference(m.key, m.value);
+      case "index.export": return conversations.dump();
       case "state":
         return coordinator.state();
       case "mutate":
