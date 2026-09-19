@@ -56,6 +56,7 @@ export class Shell {
   private dot = el("i");
   private stateLabel = el("span");
   private menu: string | null = null;
+  private interacted=false;
   private lastFocus: HTMLElement | null = null;
   private currentPhase: Phase = "unknown";
   private header = new HeaderIntegration();
@@ -98,6 +99,7 @@ export class Shell {
     document.body.append(this.host);
     this.isolated = new IsolatedPanel(this.panel, () => this.close());
     this.navigationDock.watchFrame(this.isolated.frame);
+    void ctx.conversations?.preference<boolean>('navigator.open').then(open=>{if(open&&!this.interacted&&this.ctx.state().settings.enabled&&this.ctx.state().settings.layout.promptNavigator)this.open('prompts');}).catch(()=>{});
     window.addEventListener("resize", this.onResize);
     window.addEventListener("keydown",this.onShortcut,true);
     if (typeof ResizeObserver !== "undefined") {
@@ -366,6 +368,8 @@ export class Shell {
     this.lastFocus?.focus();
   }
   open(kind: string) {
+    this.interacted=true;
+    if(this.menu==='prompts'&&kind!=='prompts')this.prompts.panelClosed();
     if (this.menu === kind) {
       this.close();
       return;

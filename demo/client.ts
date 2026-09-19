@@ -1,3 +1,5 @@
+import { ConversationStore } from "../src/conversation/storage";
+import { StateVault } from "../src/background/state-vault";
 /** Test harness only: never included in extension builds. No real account access. */
 import { Coordinator, type KV } from "../src/background/coordinator";
 import { startApp } from "../src/app";
@@ -17,7 +19,9 @@ const kv: KV = {
     localStorage.setItem(`nagi-fixture:${k}`, JSON.stringify(v));
   },
 };
-const coordinator = new Coordinator(kv, kv);
+const store=new ConversationStore();
+const vault=new StateVault(store,kv);
+const coordinator = new Coordinator(vault, kv);
 const instanceId = crypto.randomUUID();
 const tabId = Math.floor(Math.random() * 1e9);
 let listeners: ((s: State) => void)[] = [];
@@ -34,6 +38,14 @@ const client: Client = {
     const p = payload as Record<string, any>;
     return (await navigator.locks.request("nagi-fixture", async () => {
       switch (type) {
+        case 'index.load':return store.load(p.conversationId);
+        case 'index.write':return store.write(p.messages,p.annotations||[]);
+        case 'index.preference':return store.preference(p.key,p.value);
+        case 'index.export':return store.dump();
+        case 'backup.export':return store.backup();
+        case 'backup.recovery':return store.recoveryBackup();
+        case 'backup.import':{const old=await coordinator.state();if(old.revision!==p.expectedRevision)throw new Error('Revision changed');const state=await store.importBackup(p.backup,old.revision,old.indexGeneration);await vault.notify(state);listeners.forEach(fn=>fn(state));return state;}
+        case 'continuation':{const key=`continuation:${tabId}`;if(p.value!==undefined){await kv.set(key,p.value);return p.value;}return await kv.get(key)||null;}
         case "hello":
           return true;
         case "selection":
@@ -61,7 +73,7 @@ const client: Client = {
     listeners.push(fn);
     const listener = (e: StorageEvent) => {
       if (e.key === "nagi-fixture:nagi" && e.newValue)
-        fn(JSON.parse(e.newValue));
+        void coordinator.state().then(fn);
     };
     window.addEventListener("storage", listener);
     return () => {
@@ -97,6 +109,7 @@ function turn(role: string, text: string) {
   article.dataset.testid = `conversation-turn-${count++}`;
   const message = document.createElement("div");
   message.dataset.messageAuthorRole = role;
+  message.dataset.messageId=`fixture-${count}`;
   const content = document.createElement("div");
   content.className = "markdown";
   content.textContent = text;

@@ -1,5 +1,5 @@
 export interface BackfillProgress { running:boolean; steps:number; indexed:number; reason:string }
-export interface BackfillHost { count():number; loadOlder():Promise<void>; capture():void; savePosition():()=>void; }
+export interface BackfillHost { count():number; positionToken?():string; loadOlder():Promise<void>; capture():void; savePosition():()=>void; }
 /** Explicit, bounded, cancellable native loading. No undocumented network endpoints. */
 export class Backfill {
  progress:BackfillProgress={running:false,steps:0,indexed:0,reason:''};
@@ -13,11 +13,11 @@ export class Backfill {
   let quiet=0;
   try {
    while(!abort.signal.aborted && this.progress.steps<100) {
-    const before=this.host.count();await this.host.loadOlder();
+    const before=this.host.count(),position=this.host.positionToken?.();await this.host.loadOlder();
     if(abort.signal.aborted)break;
     this.host.capture();this.progress.steps++;this.progress.indexed=this.host.count();this.changed();
     if(until?.()){this.progress.reason='Mensagem encontrada';break;}
-    quiet=this.host.count()===before?quiet+1:0;
+    quiet=this.host.count()===before&&position===this.host.positionToken?.()?quiet+1:0;
     if(quiet>=4){this.progress.reason='Início ou nenhum novo conteúdo carregado';break;}
    }
    if(abort.signal.aborted)this.progress.reason='Cancelado';
