@@ -1,3 +1,5 @@
+import type { Continuation } from "./conversation/handoff";
+import { writeDraft } from "./features/composer-draft";
 import { ConversationService } from "./conversation/service";
 import type { Client } from "./shared/platform";
 import {
@@ -25,6 +27,8 @@ export async function startApp(client: Client) {
   let latest: Snapshot;
   let routeEpoch = 0;
   let selectionReady = false;
+  let continuation:Continuation|null=null, continuationHome=false, continuationSent=false, continuationInserted=false, continuationBusy=false;
+  const observeSend=(event:Event)=>{if(!event.defaultPrevented&&continuationHome&&adapter.isSendEvent(event))continuationSent=true;};
   const conversations = new ConversationService(client);
   const adapter = new DOMChatGPTAdapter();
   const appearance = new Appearance();
@@ -159,6 +163,8 @@ export async function startApp(client: Client) {
   for (const t of ["keydown", "click", "submit"])
     window.addEventListener(t, bootGuard, true);
   guard.install();
+  for(const t of ["click","keydown","submit"])window.addEventListener(t,observeSend);
+  void client.request<Continuation|null>("continuation").then(p=>{continuation=p;}).catch(()=>{});
   await client.request("hello");
   const unsubscribe = client.subscribe(refresh);
   apply();
@@ -166,6 +172,21 @@ export async function startApp(client: Client) {
     const old = latest;
     latest = snapshot;
     conversations.update(snapshot.conversation?.id ?? null);
+    if(!snapshot.conversation && !continuationBusy) {
+      continuationBusy=true;
+      void client.request<Continuation|null>("continuation").then(async p=>{
+        continuation=p;if(!p||Date.now()-p.createdAt>86400000)return;
+        continuationHome=true;
+        if(!continuationInserted&&adapter.composer()) {
+          await setSelection(p.selection);
+          try{writeDraft(adapter.composer()!,p.draft);continuationInserted=true;}catch(e){continuationInserted=true;shell.message(String(e));}
+        }
+      }).catch(()=>{}).finally(()=>{continuationBusy=false;});
+    }
+    if(continuation && continuationHome && continuationSent && snapshot.conversation && snapshot.conversation.id!==continuation.sourceId && !continuationBusy) {
+      const pending=continuation,c=current.chains.find(c=>c.id===pending.chainId),session=snapshot.conversation;
+      if(c){continuationBusy=true;void client.mutate({type:"chain.save",chain:{...c,sessions:c.sessions.some(s=>s.id===session.id)?c.sessions:[...c.sessions,{...session,...(pending.selection.personaId?{personaId:pending.selection.personaId,personaVersion:current.personas.find(p=>p.id===pending.selection.personaId)?.version}:{})}],currentSession:session.id},expectedVersion:c.version}).then(async state=>{refresh(state);await setSelection(pending.selection);await client.request("continuation",{value:null});continuation=null;continuationHome=false;continuationSent=false;continuationInserted=false;}).catch(e=>shell.message(String(e))).finally(()=>{continuationBusy=false;});}
+    }
     if (route !== snapshot.route) {
       const previous = selection;
       const preserve = !old?.conversation && guard.promotesNewChat(snapshot);
@@ -232,6 +253,7 @@ export async function startApp(client: Client) {
       conversations.dispose();
       unsubscribe();
       guard.dispose();
+      for(const t of ["click","keydown","submit"])window.removeEventListener(t,observeSend);
       composerIdentity.dispose();
       messages.dispose();
       layout.dispose();

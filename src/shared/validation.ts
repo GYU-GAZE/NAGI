@@ -223,9 +223,11 @@ export function reduce(s: State, command: Command): State {
       fail("Persona mudou. Reabra o editor.");
     next.personas = next.personas.filter((p) => p.id !== command.id);
     next.chains.forEach((c) => {
-      if (c.defaultPersonaId === command.id) c.defaultPersonaId = null;
-      if (c.lastPersonaId === command.id) c.lastPersonaId = null;
-      c.version++;
+      let changed=false;
+      if (c.defaultPersonaId === command.id) { c.defaultPersonaId = null; changed=true; }
+      if (c.lastPersonaId === command.id) { c.lastPersonaId = null; changed=true; }
+      for(const session of c.sessions) if(session.personaId===command.id) {delete session.personaId;delete session.personaVersion;changed=true;}
+      if(changed)c.version++;
     });
   } else if (command.type === "chain.save") {
     const old = next.chains.find((c) => c.id === command.chain.id);

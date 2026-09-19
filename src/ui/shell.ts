@@ -1,3 +1,4 @@
+import { handoff, type Continuation } from "../conversation/handoff";
 import { renderPalette, type PaletteCommand } from "./command-palette";
 import { ConversationPanel } from "./conversation-panel";
 import type { ConversationService } from "../conversation/service";
@@ -678,9 +679,20 @@ export class Shell {
           `${String(i + 1).padStart(2, "0")} · ${s.title}${selected.currentSession === s.id ? " · atual" : ""}`,
         );
         a.href = s.url;
+        a.onclick=e=>{e.preventDefault();void this.ctx.client.mutate({type:"chain.save",chain:{...selected,currentSession:s.id},expectedVersion:selected.version}).then(state=>{this.ctx.refresh(state);window.location.assign(s.url);}).catch(error=>this.message(String(error)));};
         list.append(a);
       });
       body.append(list);
+      const active=selected.sessions.find(s=>s.id===selected.currentSession);
+      if(active){const link=el("a","Abrir sessão atual");link.href=active.url;body.append(link);}
+      if(this.ctx.conversations && this.ctx.snapshot?.().conversation)body.append(button("Continuar em novo chat",()=>{
+        const draft=el("textarea");draft.value=handoff(this.ctx.conversations!.index,selected,state.personas.find(p=>p.id===this.ctx.selection().personaId));draft.maxLength=40000;
+        const status=el("p",undefined,"note");
+        body.replaceChildren(el("h3","Revisar continuação"),draft,note("Este rascunho não é enviado automaticamente. O novo chat será associado à Chain após seu primeiro envio. O Project será o escolhido pela navegação nativa."),button("Abrir novo chat com este rascunho",()=>{
+          const pending:Continuation={chainId:selected.id,sourceId:this.ctx.conversations!.index.conversationId,selection:{...this.ctx.selection(),chainId:selected.id},draft:draft.value,createdAt:Date.now()};
+          void this.ctx.client.request("continuation",{value:pending}).then(()=>{this.close();this.ctx.adapter.newChat();}).catch(e=>status.textContent=String(e));
+        }),status);
+      }));
       const current = this.ctx.snapshot?.().conversation;
       const index = selected.sessions.findIndex((s) => s.id === current?.id);
       const row = el("div", undefined, "row");

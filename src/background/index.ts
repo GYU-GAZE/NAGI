@@ -1,3 +1,4 @@
+import { validateContinuation } from "../conversation/handoff";
 import { ConversationStore } from "../conversation/storage";
 const conversations = new ConversationStore();
 import { Coordinator, type KV } from "./coordinator";
@@ -37,6 +38,13 @@ chrome.runtime.onMessage.addListener((m, sender, sendResponse) => {
       case "index.write": return conversations.write(m.messages, m.annotations ?? []);
       case "index.preference": return conversations.preference(m.key, m.value);
       case "index.export": return conversations.dump();
+      case "continuation": {
+        if(!isChat) throw new Error("Aba indisponível");
+        const key=`continuation:${tabId}`;
+        if(m.value===null) {await chrome.storage.session.remove(key);return null;}
+        if(m.value!==undefined) {validateContinuation(m.value);await chrome.storage.session.set({[key]:m.value});return m.value;}
+        return (await chrome.storage.session.get(key))[key] ?? null;
+      }
       case "state":
         return coordinator.state();
       case "mutate":

@@ -550,8 +550,8 @@ export class SettingsUI {
     this.body.replaceChildren(el("h2", c.name || "Nova Chain"));
     const name = input(c.name);
     name.maxLength = 100;
-    const project = input(c.projectId ?? "");
-    project.maxLength = 160;
+    const detected=this.ctx.snapshot?.().projectId;
+    const project=select([["","Sem Project"],...(c.projectId?[[c.projectId,"Project associado"] as [string,string]]:[]),...(detected&&detected!==c.projectId?[[detected,"Project desta conversa"] as [string,string]]:[])],c.projectId||"");
     const persona = select(
       [
         ["", "ChatGPT / nenhuma Persona"],
@@ -566,9 +566,9 @@ export class SettingsUI {
     this.body.append(
       field("Nome da Chain", name),
       field(
-        "Project ID (opcional)",
+        "Project associado",
         project,
-        "Metadado local. Se não foi detectado, deixe vazio ou informe manualmente. Nenhum chat será movido.",
+        "Associação local a um Project observado. Não move conversas.",
       ),
       field("Persona padrão", persona),
       checkbox(
@@ -579,7 +579,7 @@ export class SettingsUI {
       field(
         "Mensagem de continuação",
         continuation,
-        "Guardada para o próximo marco. Não será enviada automaticamente.",
+        "Incluída no rascunho de handoff, que você revisa antes de enviar.",
       ),
     );
     const sessions = el("div");
