@@ -1,10 +1,11 @@
+import { ConversationSearch, type SearchFilter } from "../conversation/search";
 import { SearchHighlight } from "./search-highlight";
 import { resolveMessages, messageSelector } from '../adapter/messages';
 import { ConversationIndex, type MessageRecord } from '../conversation/index';
 import type { ConversationService } from '../conversation/service';
 import { Backfill, scrollingHost } from '../conversation/backfill';
 import { VirtualList } from '../ui/virtual-list';
-import { el,button,select } from '../ui/dom';
+import { el,button,select,input } from '../ui/dom';
 export class PromptNavigator {
  readonly host=el('div',undefined,'prompt-nav');
  private previous=button('Prompt anterior',()=>this.step(-1),'↑');
@@ -19,6 +20,9 @@ export class PromptNavigator {
  private style=el('style','[data-nagi-prompt-target]{scroll-margin-top:calc(var(--nagi-shell-height,110px) + 20px)!important}[data-nagi-jump]{outline:2px solid var(--nagi-accent,#32d9f5)!important}');
  private highlight=new SearchHighlight();
  private targetOrder?:number;
+ private listRoot?:HTMLElement;private search=new ConversationSearch();private searchAbort?:AbortController;
+ get currentId(){return this.prompts[this.active]?.id;}
+
  readonly backfill:Backfill;
  constructor(private openList:()=>void,private service?:ConversationService) {
   this.style.dataset.nagiOwned='prompt-navigation';document.head.append(this.style);this.host.setAttribute('role','navigation');this.host.setAttribute('aria-label','Prompts enviados');this.host.append(this.previous,this.counter,this.next);
@@ -53,7 +57,7 @@ export class PromptNavigator {
   for(const n of this.observed.keys())if(!nodes.has(n)){this.observer?.unobserve(n);this.visible.delete(this.observed.get(n)!);n.removeAttribute('data-nagi-prompt-target');}this.observed=nodes;
   if(this.active<0&&this.prompts.length)this.active=0;this.active=Math.min(this.active,this.prompts.length-1);this.labels();
  }
- private labels(){const count=this.prompts.length;this.host.querySelectorAll('[aria-current]').forEach(n=>n.removeAttribute('aria-current'));this.counter.textContent=count?`Prompt ${this.active+1} / ${count}`:'Sem prompts detectados';this.counter.disabled=!count;this.previous.disabled=this.active<=0;this.next.disabled=!count||this.active>=count-1;}
+ private labels(){const count=this.prompts.length;this.listRoot?.querySelectorAll<HTMLElement>('[data-indexed-id]').forEach(n=>n.setAttribute('aria-current',String(n.dataset.indexedId===this.currentId)));this.counter.textContent=count?`Prompt ${this.active+1} / ${count}`:'Sem prompts detectados';this.counter.disabled=!count;this.previous.disabled=this.active<=0;this.next.disabled=!count||this.active>=count-1;}
  private step(delta:number){void this.go(Math.max(0,Math.min(this.prompts.length-1,this.active+delta)));}
  async go(index:number){const row=this.prompts[index];if(!row)return;this.active=index;this.labels();await this.jump(row.id);}
  async jump(id:string,heading?:string,query?:string){
@@ -69,16 +73,18 @@ export class PromptNavigator {
  }
  renderList(container:HTMLElement,close:()=>void){
   void this.service?.preference('navigator.open',true).catch(()=>{});
-  const status=el('p',undefined,'note'),filter=select([['user','Prompts'],['all','Todas as mensagens'],['assistant','Respostas']],'user');
-  const list=new VirtualList<MessageRecord>((row)=>{const b=button(`${row.role==='user'?'Você':'Resposta'} · ${row.preview||'Anexo'}${this.index.node(row.id)?'':' · não carregada'}`,()=>{void this.jump(row.id);});b.setAttribute('aria-current',String(this.prompts[this.active]?.id===row.id));return b;});
+  this.listRoot=container;
+  const query=input('');query.placeholder='Buscar na conversa…';query.setAttribute('aria-label','Buscar no Navigator');
+  const status=el('p',undefined,'note'),filter=select([['user','Prompts'],['all',`Todas (${this.index.size})`],['assistant','Respostas'],['bookmarked',`★ Favoritos (${[...this.index.annotations.values()].filter(a=>a.bookmarked).length})`],['attachments','Anexos']],'user');
+  const list=new VirtualList<MessageRecord>((row)=>{const b=button(`${row.role==='user'?'Você':'Resposta'} · ${row.preview||'Anexo'}${this.index.node(row.id)?'':' · não carregada'}`,()=>{void this.jump(row.id,undefined,query.value);});b.dataset.indexedId=row.id;b.setAttribute('aria-current',String(this.prompts[this.active]?.id===row.id));return b;});
   const load=button('Indexar mensagens anteriores',()=>void this.backfill.run()),cancel=button('Cancelar carregamento',()=>this.backfill.cancel());
   const width=el('input');width.type='range';width.min='280';width.max='900';width.value='600';width.setAttribute('aria-label','Largura do Navigator');
   width.oninput=()=>{const frame=container.ownerDocument.defaultView?.frameElement as HTMLElement|null;if(frame){frame.dataset.nagiWidth=width.value;frame.style.width=`${Math.min(window.innerWidth-24,Number(width.value))}px`;}void this.service?.preference('navigator.width',Number(width.value)).catch(()=>{});};
   void this.service?.preference<number>('navigator.width').then(value=>{if(value&&container.isConnected){width.value=String(value);width.oninput?.(new Event('input'));}}).catch(()=>{});
-  this.refreshList=()=>{if(!container.isConnected)return;status.textContent=`${this.index.size} indexadas · ${this.index.loadedCount} carregadas${this.index.pendingCount?` · ${this.index.pendingCount} aguardando confirmação`:""}${this.backfill.progress.running?` · carregando (${this.backfill.progress.steps})`:this.backfill.progress.reason?` · ${this.backfill.progress.reason}`:''}${this.service?.error?` · Falha ao salvar: ${this.service.error}`:''}`;load.disabled=this.backfill.progress.running;cancel.hidden=!this.backfill.progress.running;list.set(this.index.all.filter(r=>filter.value==='all'||r.role===filter.value));};
-  filter.onchange=()=>this.refreshList?.();container.append(status,filter,width,button('Topo',()=>{const first=this.index.all[0];if(first)void this.jump(first.id);}),button('Fim',()=>{const last=this.index.all.at(-1);if(last)void this.jump(last.id);}),load,cancel,list.host);this.refreshList();
+  this.refreshList=()=>{if(!container.isConnected)return;status.textContent=`${this.index.size} indexadas · ${this.index.loadedCount} carregadas${this.index.pendingCount?` · ${this.index.pendingCount} aguardando confirmação`:""}${this.backfill.progress.running?` · carregando (${this.backfill.progress.steps})`:this.backfill.progress.reason?` · ${this.backfill.progress.reason}`:''}${this.service?.error?` · Falha ao salvar: ${this.service.error}`:''}`;load.disabled=this.backfill.progress.running;cancel.hidden=!this.backfill.progress.running;this.searchAbort?.abort();const abort=this.searchAbort=new AbortController(),index=this.index;void this.search.query(index,query.value,filter.value as SearchFilter,abort.signal).then(rows=>{if(!abort.signal.aborted&&index===this.index&&container.isConnected)list.set(rows.map(r=>r.message));});};
+  query.oninput=()=>this.refreshList?.();filter.onchange=()=>this.refreshList?.();list.set(this.prompts);container.append(status,query,filter,width,button('Topo',()=>{const first=this.index.all[0];if(first)void this.jump(first.id);}),button('Fim',()=>{const last=this.index.all.at(-1);if(last)void this.jump(last.id);}),load,cancel,list.host);this.refreshList();
   if(!container.isConnected){list.set(this.prompts);status.textContent=`${this.index.size} indexadas`;}
  }
- panelClosed(){this.refreshList=undefined;void this.service?.preference('navigator.open',false).catch(()=>{});}
- dispose(){this.highlight.dispose();this.backfill.cancel();this.unsubscribe?.();this.observer?.disconnect();this.resized?.disconnect();for(const n of this.observed.keys())n.removeAttribute('data-nagi-prompt-target');this.style.remove();this.host.remove();}
+ panelClosed(){this.searchAbort?.abort();this.listRoot=undefined;this.refreshList=undefined;void this.service?.preference('navigator.open',false).catch(()=>{});}
+ dispose(){this.searchAbort?.abort();this.highlight.dispose();this.backfill.cancel();this.unsubscribe?.();this.observer?.disconnect();this.resized?.disconnect();for(const n of this.observed.keys())n.removeAttribute('data-nagi-prompt-target');this.style.remove();this.host.remove();}
 }

@@ -479,6 +479,13 @@ export class Shell {
       {id:"sidebar",label:"Mostrar navegação original",run:()=>{void this.ctx.client.mutate({type:"settings",patch:{hideSidebar:false}}).then(s=>this.ctx.refresh(s));this.close();}},
       {id:"pause",label:"Pausar nAGI",run:()=>this.ctx.pause()},
     ];
+    const current=this.prompts.currentId;
+    if(current&&this.ctx.conversations){
+      commands.push({id:'bookmark-current',label:'Marcar prompt atual como favorito',run:()=>{void this.ctx.conversations!.annotate(current,{bookmarked:true}).catch(e=>this.message(String(e)));this.close();}},
+        {id:'focus-current',label:'Recolher tudo exceto o prompt atual',run:()=>{this.conversationPanel?.focus.only(this.ctx.conversations!.index,current);this.close();}});
+    }
+    const chat=this.ctx.snapshot?.().conversation, row=chat&&resolveChatRows().find(r=>r.id===chat.id);
+    if(row&&(nativePin(row.row)||nativeChatMenu(row.row)))commands.push({id:'pin-current',label:row.pinned?'Desafixar chat atual':'Fixar chat atual',run:()=>{this.close();void pinChat(row.id).then(ok=>{if(!ok)this.message('Controle Pin não reconhecido. Use o menu original da conversa.');}).catch(e=>this.message(String(e)));}});
     for(const p of this.ctx.state().personas)commands.push({id:`persona:${p.id}`,label:`Persona: ${p.name}`,run:()=>{void this.ctx.setSelection({...this.ctx.selection(),personaId:p.id,visualOnly:false}).catch(e=>this.message(String(e)));this.close();}});
     return commands;
   }
