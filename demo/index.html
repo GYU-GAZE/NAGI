@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Sessão de teste — ChatGPT</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font: 15px/1.6 system-ui;
+        color: #eee;
+        background: #212121;
+        display: flex;
+        height: 100vh;
+      }
+      #history {
+        width: 230px;
+        flex-shrink: 0;
+        background: #171717;
+        padding: 70px 18px 18px;
+        overflow: auto;
+      }
+      nav a {
+        display: block;
+        color: #ddd;
+        text-decoration: none;
+        margin: 8px 0;
+        padding: 7px;
+        border-radius: 5px;
+      }
+      nav a:hover {
+        background: #333;
+      }
+      .content {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      header {
+        padding: 66px 24px 12px;
+        border-bottom: 1px solid #444;
+        font-size: 13px;
+        color: #bbb;
+      }
+      main {
+        overflow: auto;
+        flex: 1;
+        scroll-behavior: auto;
+      }
+      #conversation {
+        max-width: 850px;
+        margin: auto;
+        padding: 20px;
+      }
+      article {
+        padding: 20px;
+        min-height: 100px;
+      }
+      article:has([data-message-author-role="user"]) {
+        background: #303030;
+        border-radius: 15px;
+        margin: 15px 0;
+      }
+      .markdown p {
+        margin: 8px 0;
+      }
+      form {
+        display: flex;
+        gap: 10px;
+        padding: 18px;
+        max-width: 900px;
+        width: 100%;
+        margin: auto;
+      }
+      textarea {
+        flex: 1;
+        min-height: 64px;
+        border: 1px solid #555;
+        border-radius: 12px;
+        background: #303030;
+        color: white;
+        padding: 14px;
+        font: inherit;
+      }
+      button {
+        cursor: pointer;
+        background: #ddd;
+        color: #111;
+        border: 0;
+        border-radius: 8px;
+        padding: 8px 12px;
+      }
+      aside {
+        font-size: 12px;
+      }
+      #benchmark-output {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        font-size: 11px;
+      }
+      details {
+        margin-top: 20px;
+      }
+      @media (max-width: 700px) {
+        #history {
+          width: 170px;
+        }
+        header {
+          padding-top: 70px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <nav id="history" aria-label="Histórico">
+      <strong>ChatGPT / fixture</strong
+      ><a href="/" data-testid="create-new-chat-button">Novo chat</a
+      ><a href="/c/demo-session">Sessão de teste</a
+      ><a href="/c/demo-other">Outra conversa</a
+      ><a href="/g/g-p-demo/project">Projeto de exemplo</a>
+      <details>
+        <summary>Teste de desempenho</summary>
+        <p>Gera conteúdo sintético local</p>
+        <button id="many">Adicionar 600 turnos</button>
+        <p><button id="benchmark">Comparar OFF / ON</button></p>
+        <pre id="benchmark-output"></pre>
+      </details>
+    </nav>
+    <div class="content">
+      <header>
+        AMBIENTE DE TESTE LOCAL · sem conta, sem IA, sem envio externo<br />O
+        botão Enviar simula thinking → talking → thinking → talking → idle
+      </header>
+      <main><div id="conversation"></div></main>
+      <form>
+        <textarea
+          id="prompt-textarea"
+          aria-label="Mensagem de teste"
+          placeholder="Digite uma mensagem de teste"
+        ></textarea
+        ><button
+          type="submit"
+          data-testid="send-button"
+          aria-label="Enviar prompt"
+        >
+          Enviar
+        </button>
+      </form>
+    </div>
+    <script src="/build/demo.js"></script>
+  </body>
+</html>

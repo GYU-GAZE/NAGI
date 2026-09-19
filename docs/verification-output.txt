@@ -1,0 +1,61 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> nagi-extension@0.1.0 check
+> npm run typecheck && npm test && npm run build
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> nagi-extension@0.1.0 typecheck
+> tsc --noEmit
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> nagi-extension@0.1.0 test
+> node --import tsx --test tests/*.test.ts
+
+✔ full app mounts compact controls, theme/performance are independent and pause restores native DOM (174.009134ms)
+✔ persona editor persists literal untrusted text and exposes instructions as unapplied (136.161142ms)
+✔ chain editor adds the open chat, stores order metadata and restores selection (90.587367ms)
+✔ concurrent lock acquisition has exactly one winner (3.325897ms)
+✔ lock persists through service worker reconstruction without expiry (0.341327ms)
+✔ a different tab cannot release another transaction (0.756956ms)
+✔ stale instance and stale token cannot release replacement lock (0.386804ms)
+✔ reload marks owner orphaned and never automatically releases (0.694467ms)
+✔ hello from same instance leaves ownership intact (0.300123ms)
+✔ explicit recovery checks expected token and allows next owner (0.434547ms)
+✔ generation marker and matching release operate on persisted state (0.356838ms)
+✔ serialized independent settings edits survive concurrent writes (1.942519ms)
+✔ failed transaction does not poison writer queue or storage (0.543741ms)
+✔ future/corrupt schemas never silently reset (0.972605ms)
+✔ persona edit conflict preserves newer version and instruction history (1.36947ms)
+✔ chain ordering and current session are explicit and persisted (1.032368ms)
+✔ duplicate sessions and dangling current session are rejected (0.480639ms)
+✔ concurrent stale chain edits fail instead of losing organization (0.610828ms)
+✔ deleting persona clears chain defaults without deleting chats (0.977539ms)
+✔ persona selection is isolated by both tab and route (0.455121ms)
+✔ remote avatars, SVG and malicious CSS/URLs are rejected (0.381441ms)
+✔ generation can alternate thinking and talking repeatedly (0.310107ms)
+✔ missing composer is unknown and never idle completion (0.081278ms)
+✔ transient missing stop does not signal generation completion (0.057873ms)
+✔ adapter recognizes semantic candidates, separate nav and reversible sidebar (77.608162ms)
+✔ unknown DOM yields unknown state and safe empty navigation (14.806947ms)
+✔ Shift+Enter, composing and unrelated inputs are not intercepted (12.591399ms)
+✔ instruction-bearing persona blocks original send without visual-only consent (16.335259ms)
+✔ explicit visual-only sends exactly once and keeps lock through generation (26.294972ms)
+✔ editing draft while acquiring lock aborts send and releases reservation (8.64024ms)
+✔ draft changed during queue availability check is never submitted (16.548299ms)
+✔ navigating away after generation starts holds lock instead of treating unrelated idle as completion (21.986063ms)
+ℹ tests 32
+ℹ suites 0
+ℹ pass 32
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1235.139689
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> nagi-extension@0.1.0 build
+> node scripts/build.mjs
+
+Built dist/chromium and dist/firefox
