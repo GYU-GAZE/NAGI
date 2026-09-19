@@ -1,5 +1,5 @@
 import { PromptHistory } from "./features/prompt-history";
-import type { Continuation } from "./conversation/handoff";
+import { confirmsContinuation, type Continuation } from "./conversation/handoff";
 import { readDraft, writeDraft } from "./features/composer-draft";
 import { ConversationService } from "./conversation/service";
 import type { Client } from "./shared/platform";
@@ -32,10 +32,13 @@ export async function startApp(client: Client) {
   const observeSend=(event:Event)=>{
     if(current.settings.enabled&&!event.defaultPrevented&&adapter.isSendEvent(event)){
       const composer=adapter.composer();if(composer)conversations.index.expectPrompt(readDraft(composer));
-      if(continuationHome)continuationSent=true;
+      if(continuationHome&&continuation&&composer&&readDraft(composer).trim()){
+        continuationSent=true;continuation={...continuation,draft:readDraft(composer),sentAt:Date.now()};
+        void client.request('continuation',{value:continuation}).catch(e=>shell.message(String(e)));
+      }
     }
   };
-  const cancelContinuationNavigation=(event:Event)=>{const anchor=(event.target as Element)?.closest?.('a[href]');if(anchor&&/\/c\//.test(anchor.getAttribute('href')||'')){continuationSent=false;continuationHome=false;}};
+  const cancelContinuationNavigation=(event:Event)=>{const anchor=(event.target as Element)?.closest?.('a[href]');if(anchor&&/\/c\//.test(anchor.getAttribute('href')||'')){continuationSent=false;continuationHome=false;continuation=null;void client.request('continuation',{value:null}).catch(()=>{});}};
   const conversations = new ConversationService(client,state.indexGeneration);
   const adapter = new DOMChatGPTAdapter();
   const appearance = new Appearance();
@@ -175,7 +178,7 @@ export async function startApp(client: Client) {
   guard.install();
   window.addEventListener("click",cancelContinuationNavigation,true);
   for(const t of ["click","keydown","submit"])window.addEventListener(t,observeSend,true);
-  void client.request<Continuation|null>("continuation").then(p=>{continuation=p;}).catch(()=>{});
+  void client.request<Continuation|null>("continuation").then(p=>{continuation=p;if(p?.sentAt){continuationSent=true;continuationHome=true;}}).catch(()=>{});
   await client.request("hello");
   const unsubscribe = client.subscribe(refresh);
   apply();
@@ -183,7 +186,7 @@ export async function startApp(client: Client) {
     const old = latest;
     latest = snapshot;
     if(current.settings.enabled)conversations.update(snapshot.conversation?.id ?? null);
-    if(!snapshot.conversation && !continuationBusy) {
+    if(!snapshot.conversation && selectionReady && route===snapshot.route && !continuationBusy) {
       continuationBusy=true;
       void client.request<Continuation|null>("continuation").then(async p=>{
         continuation=p;if(!p||Date.now()-p.createdAt>86400000)return;
@@ -194,7 +197,7 @@ export async function startApp(client: Client) {
         }
       }).catch(()=>{}).finally(()=>{continuationBusy=false;});
     }
-    if(continuation && continuationHome && continuationSent && snapshot.conversation && snapshot.conversation.id!==continuation.sourceId && !continuationBusy) {
+    if(continuation && continuationHome && continuationSent && selectionReady && route===snapshot.route && snapshot.conversation && confirmsContinuation(continuation,conversations.index) && !continuationBusy) {
       const pending=continuation,c=current.chains.find(c=>c.id===pending.chainId),session=snapshot.conversation;
       if(c){continuationBusy=true;void client.mutate({type:"chain.save",chain:{...c,sessions:c.sessions.some(s=>s.id===session.id)?c.sessions:[...c.sessions,{...session,...(pending.selection.personaId?{personaId:pending.selection.personaId,personaVersion:current.personas.find(p=>p.id===pending.selection.personaId)?.version}:{})}],currentSession:session.id},expectedVersion:c.version}).then(async state=>{refresh(state);await setSelection(pending.selection);await client.request("continuation",{value:null});continuation=null;continuationHome=false;continuationSent=false;continuationInserted=false;}).catch(e=>shell.message(String(e))).finally(()=>{continuationBusy=false;});}
     }
