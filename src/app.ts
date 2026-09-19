@@ -96,7 +96,7 @@ export async function startApp(client: Client) {
   });
   shell = new Shell({
     conversations,
-    flushIndex: () => conversations.flush(),
+    flushIndex: () => conversations.flush(true),
     client,
     state: () => current,
     refresh,

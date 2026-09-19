@@ -92,6 +92,7 @@ export class ConversationIndex {
   retry(rows: MessageRecord[]) { for(const r of rows) this.dirty.add(r.id); }
   annotate(id: string, patch: Partial<Pick<Annotation,'bookmarked'|'labels'|'note'>>) {
     if (!this.records.has(id)) throw new Error('Mensagem não indexada');
+    if(patch.note!==undefined&&(typeof patch.note!=='string'||patch.note.length>20000)||patch.bookmarked!==undefined&&typeof patch.bookmarked!=='boolean'||patch.labels!==undefined&&(!Array.isArray(patch.labels)||patch.labels.length>50||patch.labels.some(l=>typeof l!=='string'||l.length>80)))throw new Error('Anotação inválida');
     const a = {...(this.annotations.get(id) || {conversationId:this.conversationId,messageId:id,bookmarked:false,labels:[],note:''}),...patch,updatedAt:Date.now()};
     this.annotations.set(id,a); this.revision++; return a;
   }

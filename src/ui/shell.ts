@@ -682,7 +682,7 @@ export class Shell {
     if (selected) {
       body.append(
         note(
-          `${selected.projectId ?? "Sem Project associado"} / ${selected.name}`,
+          `${selected.projectId ? this.ctx.adapter.projects().find(p=>p.id===selected.projectId)?.title || "Project associado" : "Sem Project associado"} / ${selected.name}`,
         ),
       );
       const list = el("div", undefined, "list");

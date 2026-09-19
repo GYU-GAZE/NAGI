@@ -10,6 +10,7 @@ export class ConversationService {
  private epoch=0;
  private timer?: ReturnType<typeof setTimeout>;
  private lastRegions?:ReturnType<MessageRegistry["read"]>;
+ private previousNodes=new Map<HTMLElement,{native:string|null;text:string}>();
  private stopped=false;
  private ready=false;
  constructor(private client:Client,private generation=0) {}
@@ -23,7 +24,10 @@ export class ConversationService {
  update(id:string|null) {
   const key=id||'draft';
   if(this.index.conversationId!==key) {
-   void this.flush(); this.index=new ConversationIndex(key);this.lastRegions=undefined;const epoch=++this.epoch;this.ready=!id;
+   void this.flush();
+   this.previousNodes.clear();
+   if(this.index.conversationId!=='draft'&&this.index.conversationId!=='reset')for(const row of this.index.all){const node=this.index.node(row.id);if(node)this.previousNodes.set(node,{native:row.nativeId||null,text:node.textContent||''});}
+   this.index=new ConversationIndex(key);this.lastRegions=undefined;const epoch=++this.epoch;this.ready=!id;
    if(id) void this.client.request<ConversationData>('index.load',{conversationId:id}).then(data=>{
     if(epoch!==this.epoch||this.stopped)return;
     if(!data || !Array.isArray(data.messages)) throw new Error('Persistência indisponível');
@@ -39,15 +43,17 @@ export class ConversationService {
   if(!force&&regions===this.lastRegions&&!changed.size)return;
   this.lastRegions=regions;
   const before=this.index.revision;
-  this.index.capture(regions,force?undefined:changed);
+  const visible=regions.filter(({node})=>{const prior=this.previousNodes.get(node);if(!prior)return true;const native=node.getAttribute('data-message-id')||node.closest('[data-message-id]')?.getAttribute('data-message-id');if(native!==prior.native||(!native&&node.textContent!==prior.text)){this.previousNodes.delete(node);return true;}return false;});
+  for(const node of this.previousNodes.keys())if(!node.isConnected)this.previousNodes.delete(node);
+  this.index.capture(visible,force?undefined:changed);
   this.emit();
   if(before!==this.index.revision) {clearTimeout(this.timer);this.timer=setTimeout(()=>void this.flush(),700);}
  }
- async flush() {
+ async flush(strict=false) {
   clearTimeout(this.timer);const index=this.index;
   if(index.conversationId==='draft')return;
   const messages=index.drain();if(!messages.length)return;
-  try {await this.client.request('index.write',{messages,generation:this.generation});this.error='';} catch(e) {index.retry(messages);this.error=String(e);this.emit();}
+  try {await this.client.request('index.write',{messages,generation:this.generation});this.error='';} catch(e) {index.retry(messages);this.error=String(e);this.emit();if(strict)throw e;}
  }
  async annotate(id:string,patch:Partial<Pick<Annotation,'bookmarked'|'labels'|'note'>>) {
   const annotation=this.index.annotate(id,patch);this.emit();
