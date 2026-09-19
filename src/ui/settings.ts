@@ -12,12 +12,14 @@ import {
 import type { Client } from "../shared/platform";
 import type { Snapshot } from "../adapter/chatgpt";
 import { validImage } from "../shared/validation";
+import { downloadDiagnosticReport } from "../features/diagnostics";
 export interface SettingsContext {
   client: Client;
   state(): State;
   refresh(s: State): void;
   snapshot?(): Snapshot;
   diagnostics?(): object;
+  exportDiagnostics?(): object;
   selectChain?(chain: Chain): void;
 }
 export class SettingsUI {
@@ -568,6 +570,39 @@ export class SettingsUI {
         "Nenhum texto de conversa, instrução ou avatar aparece aqui. A detecção de geração é uma estimativa do DOM visível.",
       ),
     );
+    if (this.ctx.exportDiagnostics) {
+      this.body.append(
+        note(
+          "Para relatar um problema: ative as opções que está testando, baixe o diagnóstico e envie o JSON junto de um print da página. O arquivo contém configurações, dimensões e estilos das regiões; não inclui conversas, rascunhos, prompts, nomes ou imagens de Personas.",
+        ),
+        button("Exportar diagnóstico (.json)", () => {
+          try {
+            const report = this.ctx.exportDiagnostics!();
+            downloadDiagnosticReport(report);
+            this.status.textContent =
+              "Diagnóstico baixado. Envie o JSON junto do print.";
+          } catch {
+            this.status.textContent =
+              "Falha ao baixar. Use Visualizar diagnóstico e copie o JSON.";
+          }
+        }),
+        button("Visualizar diagnóstico para copiar", () => {
+          const report = this.ctx.exportDiagnostics!();
+          const text = el("textarea");
+          text.readOnly = true;
+          text.value = JSON.stringify(report, null, 2);
+          text.setAttribute("aria-label", "Diagnóstico para copiar");
+          this.body.append(text);
+          text.focus();
+          text.select();
+        }),
+      );
+    } else
+      this.body.append(
+        note(
+          "Para exportar o estado real da interface, abra Configurações → Diagnóstico pela barra nAGI dentro da aba do ChatGPT.",
+        ),
+      );
     const data = el(
       "pre",
       JSON.stringify(

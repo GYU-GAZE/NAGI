@@ -1,8 +1,28 @@
-# nAGI · 0.1.0
+# nAGI · 0.1.1
 
 Extensão modular para o **ChatGPT Web oficial**. Sem API key, backend próprio, telemetria ou alteração automática das instruções da conta.
 
 **Este pacote é um primeiro marco experimental.** Compila e passa pelos testes locais, mas seus seletores ainda precisam ser validados no ChatGPT autenticado. O ambiente de desenvolvimento encontrou uma verificação humana no ChatGPT e não conseguiu abrir a fixture no navegador remoto. Isso impede afirmar compatibilidade real ou ganho de renderização neste momento.
+
+## Atualização 0.1.1 · correções de interface
+
+- Os painéis abrem em um documento isolado, para que digitação, Enter, espaços e atalhos das opções não cheguem aos handlers de teclado do ChatGPT.
+- A sidebar é reconhecida por múltiplos pontos de integração e pela estrutura de navegação. O nAGI tenta ocultar o container que reserva a largura, incluindo histórico, rodapé e rail, sem tocar no conteúdo da conversa.
+- A aparência agora é aplicada por regiões: fundo da página, área externa do composer, superfície do campo e wrappers dos botões. Bordas, sombras, rings e fundos decorativos do composer são normalizados, com um contorno de foco próprio.
+- O diagnóstico exportável descreve configurações, dimensões e estilos dessas regiões sem copiar conversas, rascunhos, instruções, avatares, nomes de Personas/Chains ou URLs.
+
+Para atualizar preservando os dados, feche os painéis nAGI, substitua os arquivos **na mesma pasta** usada pela instalação anterior, recarregue a extensão na página de gerenciamento do navegador e depois recarregue todas as abas do ChatGPT. Não mantenha as duas versões ativas simultaneamente. Em uma instalação temporária do Firefox, uma remoção/reinstalação pode perder armazenamento; prefira atualizar a instalação já carregada.
+
+### Enviar um exemplo real
+
+1. Configure o tema e ative as opções que quer testar.
+2. Pela barra nAGI na própria aba do ChatGPT, abra **Configurações → Diagnóstico → Exportar diagnóstico (.json)**.
+3. Feche o painel e tire um print da página inteira, incluindo a sidebar e o campo de mensagem. Use um chat vazio/de teste ou oculte qualquer conteúdo que não queira compartilhar.
+4. Envie o **JSON + print**. Se o download falhar, use **Visualizar diagnóstico para copiar** e copie o texto.
+
+O diagnóstico é gerado e baixado localmente. Nada é enviado automaticamente. Ele não é um backup de Personas/Chains nem um export de chats. Não envie HTML bruto, cookies, storage do site ou arquivos HAR.
+
+Ainda precisamos desse exemplo real para confirmar que as regiões detectadas correspondem à versão do ChatGPT no seu navegador. Os testes automatizados cobrem a estrutura e os eventos, mas não comprovam que toda camada visual nativa foi substituída no frontend real.
 
 ## Instalar para testar
 

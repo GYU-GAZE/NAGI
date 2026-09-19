@@ -83,6 +83,10 @@ async function fixture() {
   return {
     dom,
     root,
+    get panel() {
+      return document.querySelector<HTMLIFrameElement>("#nagi-panel-frame")!
+        .contentDocument!;
+    },
     client,
     app,
     c,
@@ -144,30 +148,30 @@ test("persona editor persists literal untrusted text and exposes instructions as
   const f = await fixture();
   try {
     click(f.root, "Configurações");
-    click(f.root, "Personas");
-    click(f.root, "Criar Persona");
-    const name = f.root.querySelector<HTMLInputElement>("input[type=text]")!;
+    click(f.panel, "Personas");
+    click(f.panel, "Criar Persona");
+    const name = f.panel.querySelector<HTMLInputElement>("input[type=text]")!;
     name.value = "<img src=x onerror=alert(1)>";
-    const instructions = f.root.querySelector("textarea")!;
+    const instructions = f.panel.querySelector("textarea")!;
     instructions.value = "Use formal prose.";
-    click(f.root, "Salvar Persona");
+    click(f.panel, "Salvar Persona");
     await tick();
     const state = await f.client.state();
     assert.equal(state.personas[0].name, name.value);
-    assert.equal(f.root.querySelector("img[src=x]"), null);
+    assert.equal(f.panel.querySelector("img[src=x]"), null);
     assert.match(
-      f.root.textContent!,
+      f.panel.body.textContent!,
       /troca das Custom Instructions.*ainda não/s,
     );
-    click(f.root, "Fechar painel");
+    click(f.panel, "Fechar painel");
     click(f.root, "Answer with…");
-    const select = f.root.querySelector("select")!;
+    const select = f.panel.querySelector("select")!;
     select.value = state.personas[0].id;
     select.dispatchEvent(new Event("change", { bubbles: true }));
     await tick();
     assert.equal((await f.c.selection(1, "/c/test")).visualOnly, false);
     assert.match(
-      f.root.textContent!,
+      f.panel.body.textContent!,
       /Instruções da Persona ainda não são aplicadas/,
     );
   } finally {
@@ -178,12 +182,12 @@ test("chain editor adds the open chat, stores order metadata and restores select
   const f = await fixture();
   try {
     click(f.root, "Configurações");
-    click(f.root, "Chains");
-    click(f.root, "Criar Chain");
-    f.root.querySelector<HTMLInputElement>("input[type=text]")!.value =
+    click(f.panel, "Chains");
+    click(f.panel, "Criar Chain");
+    f.panel.querySelector<HTMLInputElement>("input[type=text]")!.value =
       "Main Campaign";
-    click(f.root, "Adicionar conversa aberta");
-    click(f.root, "Salvar Chain");
+    click(f.panel, "Adicionar conversa aberta");
+    click(f.panel, "Salvar Chain");
     await tick();
     const chain = (await f.client.state()).chains[0];
     assert.equal(chain.name, "Main Campaign");
@@ -191,6 +195,82 @@ test("chain editor adds the open chat, stores order metadata and restores select
     assert.equal(chain.currentSession, "test");
     assert.equal(chain.projectId, null);
     assert.equal(chain.continuationMessage, "");
+  } finally {
+    f.cleanup();
+  }
+});
+
+test("editing inside options never reaches native ChatGPT keyboard handlers or its composer", async () => {
+  const f = await fixture();
+  try {
+    click(f.root, "Configurações");
+    click(f.panel, "Personas");
+    click(f.panel, "Criar Persona");
+    const field = f.panel.querySelector<HTMLInputElement>("input[type=text]")!;
+    const composer =
+      document.querySelector<HTMLTextAreaElement>("#prompt-textarea")!;
+    composer.value = "untouched native draft";
+    let intercepted = 0;
+    const nativeHandler = (event: KeyboardEvent) => {
+      intercepted++;
+      composer.focus();
+      event.preventDefault();
+    };
+    window.addEventListener("keydown", nativeHandler, true);
+    field.focus();
+    field.value = "Persona test";
+    for (const key of ["a", " ", "Enter", "Backspace"])
+      field.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key,
+          bubbles: true,
+          composed: true,
+          cancelable: true,
+        }),
+      );
+    assert.equal(intercepted, 0);
+    assert.equal(f.panel.activeElement, field);
+    assert.equal(
+      document.activeElement,
+      document.querySelector("#nagi-panel-frame"),
+    );
+    assert.equal(composer.value, "untouched native draft");
+    window.removeEventListener("keydown", nativeHandler, true);
+    field.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "Escape",
+        bubbles: true,
+        composed: true,
+        cancelable: true,
+      }),
+    );
+    assert.equal(
+      document.querySelector<HTMLIFrameElement>("#nagi-panel-frame")!.style
+        .display,
+      "none",
+    );
+  } finally {
+    f.cleanup();
+  }
+});
+
+test("shared diagnostics can be copied from isolated panel without private conversation data", async () => {
+  const f = await fixture();
+  try {
+    document.querySelector<HTMLTextAreaElement>("#prompt-textarea")!.value =
+      "PRIVATE DRAFT 123";
+    click(f.root, "Configurações");
+    click(f.panel, "Diagnóstico");
+    click(f.panel, "Visualizar diagnóstico para copiar");
+    const report = JSON.parse(
+      f.panel.querySelector<HTMLTextAreaElement>(
+        'textarea[aria-label="Diagnóstico para copiar"]',
+      )!.value,
+    );
+    assert.equal(report.extensionVersion, "0.1.1");
+    assert.equal(report.matches.composer, true);
+    assert.equal(JSON.stringify(report).includes("PRIVATE DRAFT"), false);
+    assert.equal(report.active.panelFrame, true);
   } finally {
     f.cleanup();
   }

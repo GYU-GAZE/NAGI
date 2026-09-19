@@ -16,10 +16,10 @@ Consequência: os seletores abaixo são **candidatos de integração**, exercita
 | Enviar | `button[data-testid="send-button"]`, rótulos EN/PT-BR explícitos | Mudança de botão/atalho requer reparo; nAGI não usa requisições privadas |
 | Parar | `button[data-testid="stop-button"]`, rótulos EN/PT-BR explícitos | A presença visual sugere geração; ausência só vira idle após estabilização |
 | Texto final | Último `[data-message-author-role="assistant"]` com `.markdown`, excluindo progress/details | Heurística frágil: ferramentas ou formatos novos podem confundir talking/thinking |
-| Sidebar | `#history` | Oculta somente esse nó com atributo reversível; sem nó, mantém UI nativa |
+| Sidebar | `#history`, `#sidebar`, `#stage-slideover-sidebar`, `#stage-sidebar-tiny-bar`, data-testid de sidebar e fallback nav/aside | Busca um container externo que não contenha chat/composer; remove largura junto do sidebar. Sem evidência, mantém UI nativa |
 | Turnos | `article[data-testid^="conversation-turn-"]` | Sem turnos reconhecidos, otimização faz zero alterações |
-| Recentes | Links em `nav`/`#history`, caminho terminando `/c/<id>` | Apenas links montados; ordem acompanha DOM, não data inferida |
-| Projects | Links em `nav`/`#history`, `/g/g-p-.../project` ou equivalente sem sufixo | IDs e rotas candidatos; não abre ou cria Project automaticamente |
+| Recentes | Links nas regiões identificadas como sidebar, caminho terminando `/c/<id>` | Apenas links montados; ordem acompanha DOM, não data inferida |
+| Projects | Links nas regiões identificadas como sidebar, `/g/g-p-.../project` ou equivalente sem sufixo | IDs e rotas candidatos; não abre ou cria Project automaticamente |
 | Conversa atual | Path terminando `/c/<id>` | Metadado local; não confirma conta, backend ou projeto associado |
 | Project atual | Prefixo `/g/g-p-...` quando presente | Rota `/c/<id>` isolada retorna null, sem inferência por proximidade |
 | Custom Instructions | Indisponível | Salvar Persona é operação local; nenhum backup da conta é necessário antes de uma escrita que não existe |
@@ -39,3 +39,9 @@ Antes de continuar uma Chain: detectar Project com evidência confiável, criar 
 - [MDN: content-visibility](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/content-visibility) — mecanismo de renderização opcional, sem inferir ganhos particulares no ChatGPT.
 
 Essas referências sustentam as escolhas de plataforma, não validam os seletores do ChatGPT.
+
+## Retorno do usuário e revisão 0.1.1
+
+O usuário relatou interferência do composer ao digitar nas opções, sidebar que não some e camadas/bordas pretas no composer. A revisão troca os painéis editáveis por um documento isolado e expande a aplicação visual de um seletor pontual para regiões estruturais. Esses relatos não fornecem o DOM exato, portanto os novos seletores continuam candidatos até receber o diagnóstico + screenshot do navegador real.
+
+O relatório exportável permite comparar configurações solicitadas, marcas aplicadas, containers reconhecidos, posições, fundos, bordas, sombras e pseudo-elementos. Ele omite texto e atributos livres; não é um dump de DOM.

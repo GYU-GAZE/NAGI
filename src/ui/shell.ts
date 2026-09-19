@@ -1,5 +1,6 @@
 import { el, button, select, checkbox, note, uiCSS } from "./dom";
 import { SettingsUI, type SettingsContext } from "./settings";
+import { IsolatedPanel } from "./isolated-panel";
 import type { State, Selection, Chain, Phase } from "../shared/model";
 import type { ChatGPTAdapter, Snapshot } from "../adapter/chatgpt";
 import type { Client } from "../shared/platform";
@@ -13,6 +14,7 @@ export interface ShellContext extends SettingsContext {
 export class Shell {
   readonly host = el("div");
   private shadow: ShadowRoot;
+  private isolated: IsolatedPanel;
   private bar = el("nav");
   private panel = el("section");
   private messages = el("div");
@@ -36,8 +38,9 @@ export class Shell {
     this.panel.setAttribute("role", "region");
     this.panel.setAttribute("aria-label", "Painel nAGI");
     this.messages.setAttribute("aria-live", "polite");
-    this.shadow.append(style, this.bar, this.panel, this.messages);
+    this.shadow.append(style, this.bar, this.messages);
     document.body.append(this.host);
+    this.isolated = new IsolatedPanel(this.panel, () => this.close());
     this.shadow.addEventListener("keydown", (e) => {
       if ((e as KeyboardEvent).key === "Escape") {
         this.close();
@@ -47,6 +50,7 @@ export class Shell {
   }
   render() {
     const s = this.ctx.state().settings;
+    this.isolated.place(!s.enabled || s.navigation === "native");
     this.host.style.cssText =
       s.enabled && s.navigation === "topbar"
         ? "position:fixed;z-index:2147483600;top:8px;left:50%;transform:translateX(-50%);"
@@ -139,7 +143,7 @@ export class Shell {
     this.messages.append(box);
   }
   close() {
-    this.panel.hidden = true;
+    this.isolated.hide();
     this.menu = null;
     this.lastFocus?.focus();
   }
@@ -151,7 +155,7 @@ export class Shell {
     this.menu = kind;
     this.lastFocus = this.shadow.activeElement as HTMLElement | null;
     this.panel.replaceChildren();
-    this.panel.hidden = false;
+    this.isolated.show();
     const head = el("div", undefined, "panel-head");
     const title = (
       {
@@ -211,6 +215,7 @@ export class Shell {
     }
     if (kind === "answer") this.answer(body);
     if (kind === "chains") this.chains(body);
+    this.isolated.resize();
     (
       body.querySelector("input,select,button,a") as HTMLElement | null
     )?.focus();
@@ -356,6 +361,7 @@ export class Shell {
     );
   }
   dispose() {
+    this.isolated.dispose();
     this.host.remove();
   }
 }

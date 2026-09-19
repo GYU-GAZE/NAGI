@@ -1,3 +1,4 @@
+import { VERSION } from "./shared/version";
 import { ExtensionClient } from "./shared/platform";
 import { el, button, uiCSS, note } from "./ui/dom";
 const shadow = document.querySelector("#app")!.attachShadow({ mode: "open" });
@@ -10,7 +11,7 @@ void client
   .then((s) => {
     root.append(
       el("h1", "nAGI"),
-      note("0.1.0 · primeiro marco"),
+      note(`${VERSION} · primeiro marco`),
       button(s.settings.enabled ? "Pausar nAGI" : "Ativar nAGI", () => {
         void client
           .mutate({ type: "settings", patch: { enabled: !s.settings.enabled } })

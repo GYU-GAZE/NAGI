@@ -38,3 +38,13 @@ JSDOM testa eventos, DOM e lógica. **Não testa layout visual, renderização C
 A fixture contém um ensaio reproduzível de scroll com OFF/ON/ON/OFF, 200 intervalos entre frames por condição. Relata mediana, p95 e contagem acima de 25 ms. O teste serve para uma primeira comparação no mesmo navegador; hardware, viewport, visibilidade da aba e carga afetam os resultados. Conteúdo sintético não reproduz reconciliação de React nem chamadas de ferramentas reais.
 
 **Não há resultados de renderização publicados neste pacote.** O navegador remoto recusou a fixture; inventar números ou usar tempos de JSDOM como FPS produziria evidência falsa. `scanMs` e `updateMs` no Diagnóstico representam o custo das rotinas de inspeção/marcação, não o ganho de velocidade da página.
+
+## Regressões 0.1.1
+
+- Digitar em campos de Persona dentro do painel não dispara listeners de teclado no document/window nativo; foco permanece no campo, rascunho do ChatGPT fica intacto e Escape fecha o painel.
+- Ocultar sidebar elimina o container de largura com lista, rodapé e rail; restaurar não altera os estilos inline nativos.
+- Fallback estrutural reconhece sidebar com ID diferente e não classifica navegação dentro de respostas como sidebar.
+- Composer inclui wrappers do editor e dos botões, mas não mensagens; troca de nós por React remove marcas antigas e aplica nas novas. Desligar o tema limpa as marcas.
+- Exportação de diagnóstico contém configurações e estrutura, mas não textos de mensagem, rascunhos, URLs, IDs/nomes de entidades, instruções, avatares ou propriedades futuras desconhecidas.
+
+A confirmação visual no Firefox real continua pendente do exemplo do usuário.

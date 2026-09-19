@@ -1,5 +1,6 @@
 import { selectors as S } from "./selectors";
 import { GenerationTracker } from "./generation";
+import { resolveRegions } from "./regions";
 import type { Phase, ChainSession } from "../shared/model";
 export interface NavLink {
   title: string;
@@ -32,6 +33,7 @@ export class DOMChatGPTAdapter implements ChatGPTAdapter {
   private lastAnswer = "";
   private route = "";
   private lastSnapshot: Snapshot | null = null;
+  private hiddenSidebars = new Set<HTMLElement>();
   composer() {
     return document.querySelector<HTMLElement>(S.composer);
   }
@@ -94,7 +96,7 @@ export class DOMChatGPTAdapter implements ChatGPTAdapter {
       health: {
         composer: !!composer,
         send: !!this.sendButton(),
-        sidebar: !!document.querySelector(S.sidebar),
+        sidebar: resolveRegions().sidebar.length > 0,
         turns: this.turns().length,
       },
       scanMs: performance.now() - start,
@@ -104,31 +106,27 @@ export class DOMChatGPTAdapter implements ChatGPTAdapter {
   private links(kind: "chat" | "project"): NavLink[] {
     const seen = new Set<string>();
     const result: NavLink[] = [];
-    document
-      .querySelectorAll<HTMLAnchorElement>(
-        `${S.nav
-          .split(", ")
-          .map((s) => `${s} a[href]`)
-          .join(",")}`,
-      )
-      .forEach((a) => {
-        const u = new URL(a.href, location.href);
-        if (u.origin !== location.origin) return;
-        const match =
-          kind === "chat"
-            ? u.pathname.match(/\/c\/([\w-]+)$/)
-            : u.pathname.match(/^\/g\/(g-p-[^/]+)(?:\/project)?\/?$/);
-        if (!match || seen.has(match[1])) return;
-        seen.add(match[1]);
-        result.push({
-          id: match[1],
-          title:
-            a.textContent?.trim().slice(0, 200) ||
-            a.getAttribute("aria-label") ||
-            match[1],
-          url: `https://chatgpt.com${u.pathname}`,
-        });
+    const links = resolveRegions().sidebar.flatMap((root) => [
+      ...root.querySelectorAll<HTMLAnchorElement>("a[href]"),
+    ]);
+    links.forEach((a) => {
+      const u = new URL(a.href, location.href);
+      if (u.origin !== location.origin) return;
+      const match =
+        kind === "chat"
+          ? u.pathname.match(/\/c\/([\w-]+)$/)
+          : u.pathname.match(/^\/g\/(g-p-[^/]+)(?:\/project)?\/?$/);
+      if (!match || seen.has(match[1])) return;
+      seen.add(match[1]);
+      result.push({
+        id: match[1],
+        title:
+          a.textContent?.trim().slice(0, 200) ||
+          a.getAttribute("aria-label") ||
+          match[1],
+        url: `https://chatgpt.com${u.pathname}`,
       });
+    });
     return result;
   }
   recent() {
@@ -143,13 +141,31 @@ export class DOMChatGPTAdapter implements ChatGPTAdapter {
     else location.assign("https://chatgpt.com/");
   }
   showSidebar(show: boolean) {
-    const el = document.querySelector<HTMLElement>(S.sidebar);
-    if (!el) return false;
-    if (show) el.removeAttribute("data-nagi-sidebar");
-    else el.setAttribute("data-nagi-sidebar", "hidden");
-    return true;
+    const roots = show ? [] : resolveRegions().sidebar;
+    for (const previous of this.hiddenSidebars)
+      if (!roots.includes(previous))
+        previous.removeAttribute("data-nagi-sidebar");
+    this.hiddenSidebars = new Set(roots);
+    for (const root of roots)
+      if (root.getAttribute("data-nagi-sidebar") !== "hidden")
+        root.setAttribute("data-nagi-sidebar", "hidden");
+    document.documentElement.toggleAttribute(
+      "data-nagi-sidebar-collapsed",
+      !show && roots.length > 0,
+    );
+    return show || roots.length > 0;
   }
   isSendEvent(event: Event) {
+    // Never interpret controls owned by nAGI as ChatGPT send actions.
+    if (
+      event
+        .composedPath()
+        .some(
+          (target) =>
+            target instanceof Element && target.hasAttribute("data-nagi-owned"),
+        )
+    )
+      return false;
     const el = event.target instanceof Element ? event.target : null;
     if (!el) return false;
     const composer = this.composer();

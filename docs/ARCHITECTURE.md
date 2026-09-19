@@ -4,7 +4,7 @@
 
 `content.ts` inicia `app.ts`, que compõe serviços independentes. `adapter/chatgpt.ts` concentra descoberta de conversas, navegação, composer e sinais de geração. Os seletores candidatos ficam em `adapter/selectors.ts`. `GenerationTracker` é uma máquina de estados testável sem DOM.
 
-`features/appearance.ts`, `performance.ts` e `send-guard.ts` não consultam endpoints do ChatGPT. `ui/` constrói elementos seguros via DOM e `textContent`, em Shadow DOM, sem framework de runtime. O editor de configurações é reutilizado na página de opções, disponível mesmo se o content script quebrar.
+`features/appearance.ts`, `performance.ts` e `send-guard.ts` não consultam endpoints do ChatGPT. `ui/` constrói elementos seguros via DOM e `textContent`, com a barra em Shadow DOM e os painéis editáveis em um iframe local sem scripts, sem framework de runtime. A fronteira de documento impede que eventos de teclado dos painéis percorram o document/window do ChatGPT. Os elementos e handlers são criados pelo content script, sem HTML fornecido pelo usuário. O iframe não pode carregar recursos remotos; sua navegação e seu tamanho são controlados pelo nAGI. O editor de configurações é reutilizado na página de opções, disponível mesmo se o content script quebrar.
 
 `shared/platform.ts` é o transporte WebExtensions. As APIs `chrome.*` usadas são o subconjunto de callbacks/Promises também exposto pelo Firefox. O build gera background service worker para Chromium e background scripts para Firefox. O schema da extensão exige Firefox 140+; Chromium 121+. Os builds foram compilados, mas ainda não carregados em navegadores reais nesta execução.
 
@@ -43,3 +43,9 @@ Erros de módulos são isolados na composição. A pausa remove os efeitos ativo
 ## Próximo marco
 
 Validar DOM em conta autenticada PT-BR/EN, registrar contratos de settings e Projects, testar envio/edit/regenerate/voice e falhas de rede. Só então implementar read/backup/write/verify/restore de Custom Instructions por UI visível e continuação manual com verificação explícita do Project. Activity Log, auto-rollover e layouts customizados vêm após essas bases. Não há necessidade de infraestrutura remota.
+
+## Regiões e diagnóstico (0.1.1)
+
+`adapter/regions.ts` identifica a estrutura de sidebar/composer sem cadeias de classes utilitárias. O sidebar candidato não pode conter `main`, composer ou mensagens; o fallback estrutural exige uma região de chat identificada independentemente. Marcas CSS são reversíveis e atualizadas quando React substitui nós. `Appearance.refreshRegions` não reescreve o CSS a cada mutação.
+
+`features/diagnostics.ts` serializa somente uma lista explícita de configurações e propriedades estruturais/computadas. IDs e classes arbitrários, texto, atributos livres, HTML, URLs e entidades privadas não entram no arquivo. O usuário escolhe baixar ou copiar o JSON e enviá-lo junto do print. Nenhum endpoint ou upload é usado.

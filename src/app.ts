@@ -11,6 +11,8 @@ import { Appearance } from "./features/appearance";
 import { TurnOptimizer } from "./features/performance";
 import { SendGuard } from "./features/send-guard";
 import { Shell } from "./ui/shell";
+import { createDiagnosticReport } from "./features/diagnostics";
+import { VERSION } from "./shared/version";
 export async function startApp(client: Client) {
   const state = await client.state();
   let current: State = state;
@@ -82,8 +84,9 @@ export async function startApp(client: Client) {
         .then(refresh)
         .catch((e) => shell.message(String(e)));
     },
+    exportDiagnostics: () => createDiagnosticReport(current),
     diagnostics: () => ({
-      version: "0.1.0",
+      version: VERSION,
       adapterEvidence: "candidate selectors / live verification blocked",
       conversationId: latest?.conversation?.id ?? null,
       projectId: latest?.projectId ?? null,
@@ -178,6 +181,7 @@ export async function startApp(client: Client) {
           ),
         );
     }
+    safe("appearance", () => appearance.refreshRegions(current.settings));
     safe("generation", () => guard.update(snapshot));
     safe("identity", () => shell.update(snapshot));
     safe("performance", () =>

@@ -1,9 +1,11 @@
 import { build } from "esbuild";
-import { mkdir, writeFile, copyFile } from "node:fs/promises";
+import { mkdir, writeFile, copyFile, readFile } from "node:fs/promises";
 const base = {
   manifest_version: 3,
   name: "nAGI",
-  version: "0.1.0",
+  version: JSON.parse(
+    await readFile(new URL("../package.json", import.meta.url), "utf8"),
+  ).version,
   description:
     "Temas opcionais, personas locais e Conversation Chains para ChatGPT Web.",
   permissions: ["storage"],
