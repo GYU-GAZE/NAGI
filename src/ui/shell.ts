@@ -1,3 +1,4 @@
+import { ConversationPanel } from "./conversation-panel";
 import type { ConversationService } from "../conversation/service";
 import { el, button, select, checkbox, note, uiCSS } from "./dom";
 import { SettingsUI, type SettingsContext } from "./settings";
@@ -57,6 +58,7 @@ export class Shell {
   private auxiliaryPanels = new AuxiliaryPanels();
   private modes = new ModeSwitcher((text) => this.message(text));
   private prompts: PromptNavigator;
+  private conversationPanel?: ConversationPanel;
   private context: ContextBar;
   private navigationDock = new NavigationDock();
   private shortcutSlots = new Map<SidebarDestination, HTMLElement>();
@@ -68,6 +70,7 @@ export class Shell {
   private onResize = () => this.updateHeader();
   constructor(private ctx: ShellContext) {
     this.prompts = new PromptNavigator(() => this.open("prompts"),ctx.conversations);
+    if(ctx.conversations)this.conversationPanel=new ConversationPanel(ctx.conversations,this.prompts);
     this.context = new ContextBar(kind=>this.open(kind),this.prompts.host,this.modes.host);
     this.host.dataset.nagiOwned = "shell";
     this.host.id = "nagi-root";
@@ -351,6 +354,7 @@ export class Shell {
   }
   close() {
     this.prompts.panelClosed();
+    this.conversationPanel?.close();
     this.rowTargets = [];
     this.navigationBody = null;
     this.navigationRows = [];
@@ -383,7 +387,7 @@ export class Shell {
         projects: "Projects",
         chains: "Conversation Chains",
         answer: "Answer with…",
-        prompts: "Prompts enviados",
+        prompts: "Navigator", search:"Busca local", bookmarks:"Favoritos e notas", outline:"Outline", tree:"Árvore observada",
       } as Record<string, string>
     )[kind];
     head.append(
@@ -441,6 +445,7 @@ export class Shell {
         );
     }
     if (kind === "prompts") this.prompts.renderList(body, () => this.close());
+    if (["search","bookmarks","outline","tree"].includes(kind)) this.conversationPanel?.render(body,kind);
     if (kind === "answer") this.answer(body);
     if (kind === "chains") this.chains(body);
     this.isolated.resize();
@@ -717,6 +722,7 @@ export class Shell {
     this.nativeContext.dispose();
     this.auxiliaryPanels.dispose();
     this.prompts.dispose();
+    this.conversationPanel?.dispose();
     document.documentElement.style.removeProperty("--nagi-shell-height");
     this.header.dispose();
     this.isolated.dispose();
