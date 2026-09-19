@@ -140,9 +140,34 @@ test("full app mounts network controls, theme/performance are independent and pa
       true,
     );
     assert.equal(document.querySelectorAll("[data-nagi-contain]").length, 0);
+    assert.equal(
+      document.querySelector("#history")?.getAttribute("data-nagi-sidebar"),
+      "hidden",
+    );
+    click(f.root, "Configurações");
+    assert.equal(
+      f.panel.body.textContent!.includes("Aplicar tema também"),
+      false,
+    );
+    click(f.panel, "Aparência");
+    const themePicker = f.panel.querySelector<HTMLSelectElement>("select")!;
+    assert.equal(themePicker.value, "Network");
+    themePicker.value = "Papel";
+    themePicker.dispatchEvent(
+      new f.dom.window.Event("change", { bubbles: true }),
+    );
+    await tick();
+    assert.equal(
+      document.documentElement.style.getPropertyValue("--nagi-background"),
+      "#f5f1e8",
+    );
+    assert.equal(
+      document.documentElement.hasAttribute("data-nagi-theme"),
+      true,
+    );
     await f.client.mutate({
       type: "settings",
-      patch: { appearance: true, performance: true, hideSidebar: true },
+      patch: { performance: true, hideSidebar: true },
     });
     assert.equal(
       document.documentElement.hasAttribute("data-nagi-theme"),

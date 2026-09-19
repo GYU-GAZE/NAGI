@@ -1,8 +1,19 @@
-# nAGI · 0.2.1
+# nAGI · 0.2.2
 
 Extensão modular para o **ChatGPT Web oficial**. Sem API key, backend próprio, telemetria ou alteração automática das instruções da conta.
 
-**Este pacote é experimental.** O usuário aprovou o layout Network da 0.2.0 e forneceu print/diagnóstico do ChatGPT Work/Firefox. A 0.2.1 corrige os problemas estruturais desse retorno, com regressões locais. A confirmação visual dessas correções no frontend autenticado continua pendente; não há medição real de ganho de renderização.
+**Este pacote é experimental.** O usuário confirmou que quase toda a revisão 0.2.1 ficou correta no ChatGPT Work/Firefox. A 0.2.2 integra o tema ao funcionamento padrão, corrige a largura de prompts curtos e mostra a identidade durante Thinking. As novas mudanças passaram pelos testes locais; sua confirmação visual no frontend autenticado continua pendente.
+
+## Atualização 0.2.2 · tema integrado, prompts compactos e Thinking
+
+- Na primeira instalação, nAGI, layout Network e tema já começam ativos, com a sidebar original oculta.
+- O tema faz parte do nAGI ativo. Foi removida a opção “Aplicar tema também à interface nativa”, inclusive das configurações internas. Uma instalação anterior com essa opção desligada passa a usar automaticamente sua paleta salva. Pausar nAGI restaura a apresentação nativa.
+- **Aparência → Preset** oferece Network (padrão), Terminal azul, Papel e Carvão, além da edição de cores e fonte. O seletor identifica o preset correspondente à configuração atual. Trocar uma paleta não exige ativar outro módulo nem restaurar o layout.
+- Cards de mensagens do usuário usam largura pelo conteúdo, alinhada à direita e limitada à coluna. Mensagens longas continuam quebrando linha; respostas, raciocínio e ações mantêm seu alinhamento.
+- Durante Thinking, aparece o avatar correspondente da Persona, seu nome e “Thinking...” abaixo. Isso inclui o intervalo anterior à montagem da resposta pelo site. Sem imagem Thinking usa-se idle; sem imagem cadastrada usa-se monograma.
+- A identidade acompanha a resposta atual e retorna aos estados talking/idle. Uma nova pergunta não muda o avatar de uma resposta anterior para Thinking. Indicadores temporários saem na pausa, ao trocar de conversa ou ao desligar avatares e nomes.
+
+As escolhas já salvas de cores, fonte, pausa e sidebar são preservadas. Apenas o antigo opt-in de aparência foi aposentado.
 
 ## Atualização 0.2.1 · padrão Network e correções no Work
 
@@ -81,7 +92,7 @@ Fixe o ícone nAGI na barra do navegador. Ele oferece pausa e configurações me
 ## Primeiro uso
 
 - O layout Network, a barra superior e o tema começam ativos, com a sidebar original oculta. A otimização de turnos começa desligada.
-- Em **Configurações → Aparência**, escolha Network (padrão), Terminal azul, Papel ou Carvão, ou configure cores e fonte. Network sempre usa essas escolhas; em **Geral**, a opção de tema também aplica a aparência à interface nativa.
+- Em **Configurações → Aparência**, escolha Network (padrão), Terminal azul, Papel ou Carvão, ou configure cores e fonte. O nAGI ativo sempre aplica essas escolhas, sem um toggle separado de tema.
 - Em **Personas**, crie um nome, texto de instruções e até três imagens: idle, thinking e talking. PNG, JPEG, GIF e WebP; até 256 KB e 2048 × 2048 por imagem. Os arquivos são guardados localmente.
 - Em **Answer with…**, selecione a Persona desta aba/conversa. **As instruções ainda não são aplicadas.** Uma Persona com instruções bloqueia o envio até marcar **Somente visual**. Isso envia usando as configurações atuais do ChatGPT, sem injetar outro prompt.
 - Em **Chains**, crie uma Chain e adicione a conversa aberta. As setas alteram a ordem; ● marca a sessão atual; × remove apenas o vínculo. Clique em **Salvar Chain** para gravar. Cada Chain tem Persona padrão e opção de lembrar a última Persona.

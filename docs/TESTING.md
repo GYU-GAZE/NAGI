@@ -70,3 +70,11 @@ Validação visual autenticada pendente: comparar com o mockup, testar títulos 
 Fixtures baseadas na estrutura do diagnóstico Work verificam exclusão de feedback da detecção de cabeçalho mesmo no topo da viewport ou com uma marca antiga; docking dos três controles reais; agrupamento de raciocínio/resposta/ações com preservação de handlers; restauração na pausa; composer com 12 camadas externas e decoração irmã, sem tocar no rascunho ou conversa; deslocamento do painel direito sem acumulação, resize e limpeza; coordenadas sob ancestral escalado e rolado; novos defaults Network e preservação das configurações salvas.
 
 O layout geral da 0.2.0 foi aprovado pelo usuário. Pendente na 0.2.1: confirmar em Firefox/Work o alinhamento de “Worked for” e feedback, a remoção da faixa preta, os três controles na faixa de contexto e a posição do painel direito. Testar a rolagem com esse painel aberto e depois pausado. As fixtures usam geometria simulada, não validam pixels renderizados.
+
+## Regressões 0.2.2
+
+64 testes locais passaram. A fixture de app agora verifica tema e sidebar oculta já na inicialização, ausência do toggle separado e aplicação imediata de outro preset. Migração retira `appearance` de dados antigos sem perder paleta, pausa ou preferência de sidebar.
+
+As regressões de mensagens verificam largura `fit-content` e alinhamento dos cards curtos do usuário, limite para textos longos e preservação dos nós; identidade Thinking antes da resposta existir; histórico mantido em idle; passagem do indicador provisório para o envelope de raciocínio; troca thinking/talking/idle; fallback de avatar; remoção ao desativar módulos, pausar ou substituir a conversa. As medidas CSS finais ainda dependem de confirmação visual no Firefox real, pois JSDOM não renderiza pixels.
+
+Verificação manual: enviar um prompt curto e um longo; conferir alinhamento com avatar à direita; configurar imagens idle/thinking/talking distintas e observar uma nova resposta; confirmar que uma resposta anterior permanece idle enquanto a nova está pensando; trocar preset sem acionar opções adicionais; pausar e reativar; testar uma instalação limpa com sidebar oculta.

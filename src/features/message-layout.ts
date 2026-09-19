@@ -7,10 +7,12 @@ interface Identity {
   image: HTMLImageElement;
   initials: HTMLElement;
   name: HTMLElement;
+  status: HTMLElement;
 }
 export class MessageLayout {
   private marks = new Marks();
   private badges = new Map<HTMLElement, Identity>();
+  private pending: HTMLElement | null = null;
   private style = document.createElement("style");
   constructor() {
     this.style.dataset.nagiOwned = "message-layout";
@@ -35,13 +37,20 @@ export class MessageLayout {
 [data-nagi-message-accessory] :is(button,summary,div,span,p,a){font-family:var(--nagi-ui-font,monospace)!important}
 [data-nagi-message] pre{max-width:100%;overflow-x:auto}
 @media(max-width:600px){[data-nagi-turn]{padding-inline:12px!important}[data-nagi-message=user]{max-width:calc(100% - var(--nagi-identity-space))!important}[data-nagi-message-card]{padding:12px!important}}
+[data-nagi-message=user][data-nagi-message-card]{width:fit-content!important;min-width:0!important;overflow-wrap:anywhere!important;text-align:start!important}
+[data-nagi-message=user][data-nagi-message-grouped]{max-width:100%!important;margin-left:auto!important;margin-right:0!important}
+[data-nagi-message=user][data-nagi-message-standalone]:not([data-nagi-message-grouped]){margin-left:auto!important;margin-right:max(var(--nagi-identity-space),calc((100% - var(--nagi-thread-width,1040px)) / 2 + var(--nagi-identity-space)))!important}
+[data-nagi-message=user] [data-nagi-message-surface]{min-width:0!important;width:auto!important;max-width:100%!important;overflow-wrap:anywhere!important;text-align:start!important}
+[data-nagi-thinking-envelope]{position:relative!important;min-height:calc(var(--nagi-avatar-size,64px) + 64px)!important}
+[data-nagi-owned=message-identity][data-nagi-thinking-identity]{position:absolute!important;top:0!important;left:0!important;right:auto!important;width:var(--nagi-avatar-size,64px)!important}
+[data-nagi-owned=thinking-placeholder]{position:relative!important;box-sizing:border-box!important;max-width:var(--nagi-thread-width,1040px)!important;width:100%!important;min-height:calc(var(--nagi-avatar-size,64px) + 64px)!important;margin:var(--nagi-message-gap,24px) auto!important;padding:0 calc(var(--nagi-avatar-size,64px) + 24px)!important}
 `;
     document.head.append(this.style);
   }
-  private badge(node: HTMLElement): Identity {
+  private badge(node: HTMLElement, parent = node): Identity {
     const existing = this.badges.get(node);
     if (existing) {
-      if (!node.contains(existing.host)) node.append(existing.host);
+      if (existing.host.parentElement !== parent) parent.append(existing.host);
       return existing;
     }
     const host = document.createElement("div");
@@ -56,11 +65,42 @@ export class MessageLayout {
     initials.className = "initials";
     const name = document.createElement("span");
     name.className = "name";
-    shadow.append(style, image, initials, name);
-    node.append(host);
-    const badge = { host, image, initials, name };
+    const status = document.createElement("span");
+    status.className = "status";
+    status.textContent = "Thinking...";
+    status.setAttribute("role", "status");
+    status.hidden = true;
+    style.textContent +=
+      ".status{display:block;margin-top:4px;font-size:11px;overflow-wrap:anywhere}";
+    shadow.append(style, image, initials, name, status);
+    parent.append(host);
+    const badge = { host, image, initials, name, status };
     this.badges.set(node, badge);
     return badge;
+  }
+  private showIdentity(
+    badge: Identity,
+    name: string,
+    image: string,
+    avatars: boolean,
+    names: boolean,
+    thinking: boolean,
+  ) {
+    if (badge.name.textContent !== name) badge.name.textContent = name;
+    badge.name.hidden = !names;
+    badge.status.hidden = !thinking;
+    const initials = Array.from(name.trim()).slice(0, 2).join("").toUpperCase();
+    if (badge.initials.textContent !== initials)
+      badge.initials.textContent = initials;
+    badge.image.hidden = !avatars || !image;
+    badge.initials.hidden = !avatars || !!image;
+    if (image && badge.image.getAttribute("src") !== image)
+      badge.image.src = image;
+    if (!image) badge.image.removeAttribute("src");
+    badge.host.setAttribute(
+      "aria-label",
+      thinking ? `${name}: Thinking...` : name,
+    );
   }
   apply(state: State, selection: Selection, phase: Phase) {
     const s = state.settings,
@@ -71,6 +111,28 @@ export class MessageLayout {
       (l.messageCards || l.messageAvatars || l.messageNames);
     const regions = active ? resolveMessageGroups() : [];
     const nodes = new Set(regions.map((r) => r.node));
+    const identities = l.messageAvatars || l.messageNames;
+    const last = regions.at(-1);
+    const thinking = active && identities && phase === "thinking";
+    const thinkingGroup = thinking && last?.role === "assistant" ? last : null;
+    const pendingParent =
+      last?.envelope.parentElement ??
+      document.querySelector<HTMLElement>("main,[role=main]");
+    if (thinking && !thinkingGroup && pendingParent) {
+      if (!this.pending) {
+        this.pending = document.createElement("div");
+        this.pending.dataset.nagiOwned = "thinking-placeholder";
+      }
+      if (last) {
+        if (last.envelope.nextElementSibling !== this.pending)
+          last.envelope.after(this.pending);
+      } else if (this.pending.parentElement !== pendingParent)
+        pendingParent.append(this.pending);
+      nodes.add(this.pending);
+    } else {
+      this.pending?.remove();
+      this.pending = null;
+    }
     const groups = regions.filter((r) => r.envelope !== r.node);
     this.marks.set(
       "data-nagi-message-envelope",
@@ -94,6 +156,12 @@ export class MessageLayout {
       "data-nagi-message-accessory",
       groups.flatMap((r) => r.accessories),
     );
+    this.marks.set(
+      "data-nagi-thinking-envelope",
+      thinkingGroup && thinkingGroup.envelope !== thinkingGroup.node
+        ? [thinkingGroup.envelope]
+        : [],
+    );
     for (const [node, badge] of this.badges)
       if (!nodes.has(node) || (!l.messageAvatars && !l.messageNames)) {
         badge.host.remove();
@@ -107,20 +175,31 @@ export class MessageLayout {
       "data-nagi-message-standalone",
       regions.filter((r) => r.turn === r.node).map((r) => r.node),
     );
-    this.marks.set("data-nagi-message-card", l.messageCards ? [...nodes] : []);
+    const messageNodes = regions.map((r) => r.node);
     this.marks.set(
-      "data-nagi-has-identity",
-      l.messageAvatars || l.messageNames ? [...nodes] : [],
+      "data-nagi-message-card",
+      l.messageCards ? messageNodes : [],
     );
-    this.marks.set("data-nagi-message", nodes);
+    this.marks.set("data-nagi-has-identity", identities ? messageNodes : []);
+    this.marks.set("data-nagi-message", messageNodes);
     const surfaces = new Set<HTMLElement>(),
       paths = new Set<HTMLElement>();
     const persona = s.personas
       ? state.personas.find((p) => p.id === selection.personaId)
       : null;
-    const lastAssistant = regions
-      .filter((r) => r.role === "assistant")
-      .at(-1)?.node;
+    const lastAssistant = last?.role === "assistant" ? last.node : null;
+    if (this.pending) {
+      const badge = this.badge(this.pending);
+      badge.host.toggleAttribute("data-nagi-thinking-identity", true);
+      this.showIdentity(
+        badge,
+        persona?.name ?? "ChatGPT",
+        persona?.avatars.thinking ?? persona?.avatars.idle ?? "",
+        l.messageAvatars,
+        l.messageNames,
+        true,
+      );
+    }
     for (const r of regions) {
       r.node.dataset.nagiMessage = r.role;
       // Do not move or copy conversation content. Clear decorative wrappers only.
@@ -150,7 +229,9 @@ export class MessageLayout {
         paths.add(p);
       }
       if (l.messageAvatars || l.messageNames) {
-        const badge = this.badge(r.node);
+        const atEnvelope = r === thinkingGroup && r.envelope !== r.node;
+        const badge = this.badge(r.node, atEnvelope ? r.envelope : r.node);
+        badge.host.toggleAttribute("data-nagi-thinking-identity", atEnvelope);
         const name =
           r.role === "user" ? l.userName : (persona?.name ?? "ChatGPT");
         const currentPhase =
@@ -159,22 +240,13 @@ export class MessageLayout {
           r.role === "user"
             ? l.userAvatar
             : (persona?.avatars[currentPhase] ?? persona?.avatars.idle ?? "");
-        if (badge.name.textContent !== name) badge.name.textContent = name;
-        badge.name.hidden = !l.messageNames;
-        const initials = Array.from(name.trim())
-          .slice(0, 2)
-          .join("")
-          .toUpperCase();
-        if (badge.initials.textContent !== initials)
-          badge.initials.textContent = initials;
-        badge.image.hidden = !l.messageAvatars || !image;
-        badge.initials.hidden = !l.messageAvatars || !!image;
-        if (image && badge.image.getAttribute("src") !== image)
-          badge.image.src = image;
-        if (!image) badge.image.removeAttribute("src");
-        badge.host.setAttribute(
-          "aria-label",
-          r.role === "user" ? name : `Persona visual: ${name}`,
+        this.showIdentity(
+          badge,
+          name,
+          image,
+          l.messageAvatars,
+          l.messageNames,
+          r.role === "assistant" && currentPhase === "thinking",
         );
       }
     }
@@ -182,6 +254,8 @@ export class MessageLayout {
     this.marks.set("data-nagi-thread-path", paths);
   }
   dispose() {
+    this.pending?.remove();
+    this.pending = null;
     this.marks.clear();
     for (const badge of this.badges.values()) badge.host.remove();
     this.badges.clear();

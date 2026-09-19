@@ -136,7 +136,7 @@ export function createDiagnosticReport(state: State, doc: Document = document) {
   const root = doc.documentElement;
   return {
     format: "nagi-diagnostics",
-    formatVersion: 4,
+    formatVersion: 5,
     extensionVersion: VERSION,
     createdAt: new Date().toISOString(),
     privacy:
@@ -154,7 +154,6 @@ export function createDiagnosticReport(state: State, doc: Document = document) {
     },
     settings: {
       enabled: state.settings.enabled,
-      appearance: state.settings.appearance,
       navigation: state.settings.navigation,
       hideSidebar: state.settings.hideSidebar,
       personas: state.settings.personas,

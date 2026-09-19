@@ -85,7 +85,6 @@ test("composer covers editor and tool wrappers, does not repaint the conversatio
   const dom = setup(layout);
   const theme = new Appearance();
   const s = initialState().settings;
-  s.appearance = true;
   try {
     theme.apply(s);
     const r = resolveRegions();
@@ -105,7 +104,7 @@ test("composer covers editor and tool wrappers, does not repaint the conversatio
     theme.refreshRegions(s);
     assert.equal(old.hasAttribute("data-nagi-composer-root"), false);
     assert.equal(replacement.hasAttribute("data-nagi-composer-root"), true);
-    s.appearance = false;
+    s.enabled = false;
     theme.apply(s);
     assert.equal(
       document.querySelectorAll(

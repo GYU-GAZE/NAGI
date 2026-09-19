@@ -101,13 +101,13 @@ test("generation marker and matching release operate on persisted state", async 
 test("serialized independent settings edits survive concurrent writes", async () => {
   const { c } = setup();
   await Promise.all([
-    c.mutate({ type: "settings", patch: { appearance: true } }),
+    c.mutate({ type: "settings", patch: { hideSidebar: true } }),
     c.mutate({ type: "settings", patch: { debug: true } }),
     c.mutate({ type: "settings", patch: { keepTurns: 50 } }),
   ]);
   const s = await c.state();
   assert.equal(s.revision, 3);
-  assert.equal(s.settings.appearance, true);
+  assert.equal(s.settings.hideSidebar, true);
   assert.equal(s.settings.debug, true);
   assert.equal(s.settings.keepTurns, 50);
 });

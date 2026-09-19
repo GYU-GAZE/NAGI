@@ -1,4 +1,4 @@
-# Layout Network · 0.2.1
+# Layout Network · 0.2.2
 
 ![Referência visual fornecida pelo usuário](reference-network.png)
 
@@ -23,11 +23,11 @@ Implementação estrutural da referência enviada pelo usuário: barra de ferram
 
 ## Configuração
 
-Network e suas cores são o padrão de instalações novas. Configurações salvas continuam preservadas. No modo Network, fonte, cores e largura sempre vêm de `settings.theme`, independentemente da aplicação do tema à interface nativa.
+Network e suas cores são o padrão de instalações novas. Configurações salvas continuam preservadas. Fonte, cores e largura vêm de `settings.theme`. A aparência é parte do nAGI ativo em todos os layouts; o antigo campo `settings.appearance` é removido pela migração.
 
 Em **Configurações → Layout**, `Restaurar visual padrão` aplica o preset Network, largura de 1040 px, barra superior, sidebar oculta e todos os módulos visuais. Preserva o nome e avatar local do usuário. Alternativamente, mantenha as cores anteriores e habilite/desabilite cada módulo.
 
-Os campos da estrutura `settings.layout` são validados. `variant` aceita `network` e `compact`. O modo compacto mantém a barra anterior; os módulos de aparência Network são retirados. A navegação original continua independente, assim como o tema básico e a otimização de turnos. Pausar retira marcas, retratos e controles do layout e restaura a interface nativa.
+Os campos da estrutura `settings.layout` são validados. `variant` aceita `network` e `compact`. O modo compacto mantém a barra anterior; os módulos de aparência Network são retirados. A navegação original continua independente, assim como a otimização de turnos. Pausar retira marcas, retratos e controles do layout e restaura a interface nativa.
 
 `userName` e `userAvatar` são locais. O avatar aceita PNG, JPEG, GIF e WebP, até 256 KB e 2048 × 2048 px no upload. A Persona selecionada fornece os retratos de resposta; apenas a última resposta usa o estado estimado thinking/talking. As demais usam idle. Essas identidades são uma apresentação visual da seleção atual, não um registro de qual Persona produziu cada mensagem no passado. As instruções continuam sem aplicação automática.
 
@@ -57,7 +57,7 @@ Não se aceita CSS/JS arbitrário nas configurações. Isso mantém dimensões e
 
 A 0.1.1 e a composição geral da 0.2.0 foram confirmadas pelo usuário em Firefox/Work. As correções da 0.2.1 ainda precisam de confirmação visual nesse frontend. Esta estrutura Network foi testada com fixtures DOM, incluindo uma variante sem os articles de conversa antigos. Os testes cobrem conservação de nós e handlers, rascunho, privacidade, seleção de prompts, troca de módulo e restauração. JSDOM não renderiza o layout real: dimensões dos testes são simuladas. Não houve inspeção autenticada nem comparação visual desta revisão no navegador do usuário.
 
-O diagnóstico formato 4 registra configurações estruturais, contagem de papéis, cards e controles, além de amostras de geometria/estilos sem texto. Se Work usar hooks semânticos diferentes, `adapter/messages.ts` pode precisar de novos seletores. Não se classifica uma mensagem como usuário/assistente pela prosa ou cor de uma bolha.
+O diagnóstico formato 5 registra configurações estruturais, contagem de papéis, cards e controles, além de amostras de geometria/estilos sem texto. Se Work usar hooks semânticos diferentes, `adapter/messages.ts` pode precisar de novos seletores. Não se classifica uma mensagem como usuário/assistente pela prosa ou cor de uma bolha.
 
 ## Agrupamento e posicionamento · 0.2.1
 
@@ -66,3 +66,11 @@ O diagnóstico formato 4 registra configurações estruturais, contagem de papé
 O detector de cabeçalho exclui envelopes completos de mensagens e barras com ações de feedback, inclusive se já marcadas por uma detecção antiga. O docking considera ancestrais que estabelecem um bloco para posicionamento fixo e recalcula as coordenadas durante rolagem. O painel direito é medido sem seu deslocamento anterior, evitando acumulação; o deslocamento e as marcas são removidos ao desativar.
 
 A busca externa do composer sobe até 32 ancestrais, interrompendo antes de main/body ou qualquer região que contenha mensagens. Apenas decorações vazias e não interativas ao longo desse caminho são normalizadas. Não se limpa todo o conteúdo da página para remover uma faixa de fundo.
+
+## Cards e identidade durante Thinking · 0.2.2
+
+O envelope da mensagem mantém a coluna comum de raciocínio e ações. Somente o card do usuário encolhe com `width: fit-content`, margem inicial automática e limite da coluna. Wrappers de conteúdo não impõem largura mínima; textos longos e sequências sem espaços podem quebrar linha. Os controles e o texto nativos não são recriados.
+
+`MessageLayout` apresenta a identidade no topo do envelope da resposta durante Thinking, ao lado da região de raciocínio. Quando ainda não existe uma mensagem assistente atual, cria um indicador próprio após o último prompt; esse indicador não é classificado como mensagem e não entra na navegação de prompts. Ao aparecer a resposta, o indicador provisório sai. Durante talking/idle a identidade volta a acompanhar o card. Só a última mensagem, quando assistente, pode receber o estado atual; respostas anteriores permanecem idle.
+
+O avatar usa thinking, com fallback para idle ou monograma. Nome e retrato seguem os módulos de identidade existentes. O estado continua sendo uma estimativa baseada nos sinais visíveis de geração; não é uma leitura de estado interno do modelo.

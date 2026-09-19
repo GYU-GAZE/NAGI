@@ -73,7 +73,6 @@ const client: Client = {
 async function boot() {
   if (!(await kv.get("nagi"))) {
     const state = initialState();
-    state.settings.appearance = true;
     state.settings.hideSidebar = true;
     state.settings.showName = true;
     state.settings.theme = { ...presets.Network };

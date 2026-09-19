@@ -45,7 +45,6 @@ export function safeChatURL(value: string): boolean {
 export function validateSettings(s: Settings) {
   for (const k of [
     "enabled",
-    "appearance",
     "hideSidebar",
     "personas",
     "chains",
@@ -163,6 +162,8 @@ export function migrate(value: unknown): State {
   if (!s.settings || typeof s.settings !== "object")
     fail("Configurações inválidas.");
   if (s.settings.layout === undefined) s.settings.layout = { ...defaultLayout };
+  // Appearance is intrinsic to enabled nAGI; discard the retired opt-in flag.
+  delete (s.settings as Settings & { appearance?: unknown }).appearance;
   validateState(s);
   return s;
 }

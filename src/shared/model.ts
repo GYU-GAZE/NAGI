@@ -41,7 +41,6 @@ export const defaultLayout: LayoutSettings = {
 };
 export interface Settings {
   enabled: boolean;
-  appearance: boolean;
   navigation: "native" | "topbar";
   hideSidebar: boolean;
   personas: boolean;
@@ -168,7 +167,6 @@ export function initialState(): State {
     revision: 0,
     settings: {
       enabled: true,
-      appearance: true,
       navigation: "topbar",
       hideSidebar: true,
       personas: true,

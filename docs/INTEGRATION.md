@@ -65,3 +65,11 @@ A estrutura registrada separa raciocínio, conteúdo final e feedback em ramos i
 O aside direito foi medido em y=52, altura 517 e largura 300, sob as barras nAGI. A revisão calcula o deslocamento a partir da altura real do shell, reserva margem de 12 px e limita a altura disponível. Não move conteúdo entre documentos.
 
 Essas evidências orientam fixtures estruturais e testes de geometria simulada. Não equivalem a uma inspeção autenticada da 0.2.1. O diagnóstico formato 4 amplia amostras de ancestrais, envelopes, acessórios e painéis mantendo a lista permitida de atributos, estilos e categorias sem texto privado.
+
+## Retorno do usuário · 0.2.2
+
+O usuário confirmou que a revisão 0.2.1 ficou quase toda correta e apontou cards curtos do usuário ocupando a largura inteira. A causa estava na regra comum de largura de mensagens agrupadas. A 0.2.2 preserva o envelope de raciocínio/ações e aplica encolhimento apenas ao card do usuário.
+
+A solicitação também esclarece o contrato de ativação: tema integra nAGI, sem opt-in separado. A migração descarta o campo antigo e preserva os valores de paleta e fonte. Network permanece o preset padrão entre as paletas disponíveis. A sidebar começa oculta na instalação limpa; preferências posteriores continuam salvas.
+
+O indicador Thinking utiliza a fase estimada pelo adapter existente. Enquanto o site não monta a nova mensagem assistente, há um indicador próprio do nAGI, excluído dos seletores de mensagens e prompts. Ao montar a resposta, apenas a identidade própria muda de posição, mantendo o DOM nativo intacto. Não há novo acesso a APIs ou conteúdo privado.

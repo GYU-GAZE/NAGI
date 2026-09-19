@@ -84,7 +84,6 @@ export class SettingsUI {
     );
     const toggles: [keyof Settings, string][] = [
       ["enabled", "Ativar nAGI"],
-      ["appearance", "Aplicar tema também à interface nativa"],
       ["personas", "Personas e trava de envio entre abas"],
       ["chains", "Conversation Chains"],
       ["showAvatar", "Mostrar avatar da Persona na barra"],
@@ -148,15 +147,22 @@ export class SettingsUI {
     this.body.append(
       el("h2", "Aparência"),
       note(
-        "Use fontes instaladas no computador. Esta versão não baixa fontes. O layout Network usa as cores e a fonte definidas aqui. Em outros layouts, ative o tema em Geral.",
+        "Use fontes instaladas no computador. Esta versão não baixa fontes. O tema faz parte do nAGI ativo. Escolha uma paleta ou personalize as cores e a fonte aqui.",
       ),
     );
     const preset = select(
       [
         ["", "Escolher preset"],
-        ...Object.keys(presets).map((n) => [n, n] as [string, string]),
+        ...Object.keys(presets).map(
+          (n) =>
+            [n, n === "Network" ? "Network (padrão)" : n] as [string, string],
+        ),
       ],
-      "",
+      Object.keys(presets).find((name) =>
+        Object.entries(presets[name]).every(
+          ([key, value]) => t[key as keyof typeof t] === value,
+        ),
+      ) ?? "",
     );
     preset.onchange = () => {
       if (presets[preset.value])
@@ -242,7 +248,6 @@ export class SettingsUI {
         () =>
           void this.run(async () => {
             await this.settings({
-              appearance: true,
               navigation: "topbar",
               hideSidebar: true,
               showName: true,

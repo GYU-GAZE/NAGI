@@ -7,7 +7,7 @@ const base = {
     await readFile(new URL("../package.json", import.meta.url), "utf8"),
   ).version,
   description:
-    "Temas opcionais, personas locais e Conversation Chains para ChatGPT Web.",
+    "Temas, personas locais e Conversation Chains para ChatGPT Web.",
   permissions: ["storage"],
   host_permissions: ["https://chatgpt.com/*"],
   content_scripts: [

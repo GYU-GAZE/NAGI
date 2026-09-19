@@ -43,7 +43,7 @@ html[data-nagi-reduce-motion] main *{animation:none!important;transition:none!im
     this.marks.set(name, next);
   }
   refreshRegions(s: Settings) {
-    if (!s.enabled || !s.appearance) {
+    if (!s.enabled) {
       for (const [name, nodes] of this.marks) {
         for (const node of nodes) node.removeAttribute(name);
       }
@@ -72,7 +72,7 @@ html[data-nagi-reduce-motion] main *{animation:none!important;transition:none!im
       width: `${t.width}px`,
     }))
       root.style.setProperty(`--nagi-${name}`, value);
-    root.toggleAttribute("data-nagi-theme", s.enabled && s.appearance);
+    root.toggleAttribute("data-nagi-theme", s.enabled);
     root.toggleAttribute(
       "data-nagi-reduce-motion",
       s.enabled && s.reduceMotion,
