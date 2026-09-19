@@ -6,15 +6,23 @@ export interface MessageRegion {
   turn: HTMLElement;
   role: "user" | "assistant";
 }
+const sources = new WeakMap<Document, () => MessageRegion[]>();
+export function registerMessageSource(doc: Document, read: () => MessageRegion[]) {
+  sources.set(doc, read); return () => sources.delete(doc);
+}
 export function resolveMessages(doc: Document = document): MessageRegion[] {
+  return sources.get(doc)?.() ?? scanMessages(doc);
+}
+export function scanMessages(doc: Document = document, root: Document | Element = doc): MessageRegion[] {
   const candidates = [
-    ...doc.querySelectorAll<HTMLElement>(messageSelector),
+    ...(root instanceof doc.defaultView!.Element && root.matches(messageSelector) ? [root as HTMLElement] : []),
+    ...root.querySelectorAll<HTMLElement>(messageSelector),
   ].filter(
     (e) =>
       !e.closest('[data-nagi-owned],[role="dialog"],nav,aside,form,[hidden]'),
   );
   const nodes = candidates.filter(
-    (e) => !candidates.some((other) => other !== e && other.contains(e)),
+    (e) => !e.parentElement?.closest(messageSelector),
   );
   return nodes.map((node) => {
     const role =
