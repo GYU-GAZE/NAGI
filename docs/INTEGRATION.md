@@ -79,3 +79,11 @@ O indicador Thinking utiliza a fase estimada pelo adapter existente. Enquanto o 
 O print enviado antes de testar 0.2.2 mostra que o shell ocultou o acesso ao seletor Chat/Work e que saudação, barra de abas e cards de sugestões mantiveram fontes/fundos nativos. O print fornece evidência visual, mas não os elementos e atributos do seletor. Os hooks de modo desta revisão são candidatos exercitados em fixtures e incluem fallback explícito para a navegação original.
 
 Não são criados URLs presumidos como parâmetro de modo, chamadas internas ou alterações diretas ao storage do ChatGPT. Links/botões existentes conduzem a seleção. A raiz do site e Novo chat continuam respeitando o comportamento nativo; o seletor fica acessível no layout nAGI. A detecção e o estado ativo podem ser conferidos no diagnóstico formato 6.
+
+## Navegação e envio · 0.2.5
+
+O usuário confirmou que a maior parte dos problemas da 0.2.4 foi resolvida e relatou um aviso de trava na criação de chats. A condição exigia fase thinking/talking ao atribuir a URL definitiva; uma fase unknown durante essa transição caía no aviso de navegação. O fluxo de envio atual abandona a reserva entre abas e transfere a seleção sem depender dessa fase.
+
+Nenhuma Custom Instruction foi lida ou alterada na conta durante esta revisão. As buscas na documentação oficial acessível não estabeleceram uma garantia para edições dessas instruções durante uma tarefa Work. A retirada da trava é justificada pelo escopo visual atual de Personas, não por uma garantia sobre o backend do ChatGPT.
+
+Os novos hooks de navegação são candidatos semânticos EN/PT: seções Pinned/Fixados, atributos de pin, linhas com links de conversa e destinos globais nomeados. Menus continuam nativos; o atalho Pin exige associação explícita ao trigger. Ainda falta confirmação no Firefox do usuário. Projects só lista dados carregados na UI e oferece expansão se o controle existir; não acessa um endpoint não validado para prometer todos os projetos.

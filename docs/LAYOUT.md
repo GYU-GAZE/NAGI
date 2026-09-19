@@ -1,4 +1,4 @@
-# Layout Network · 0.2.4
+# Layout Network · 0.2.5
 
 ![Referência visual fornecida pelo usuário](reference-network.png)
 
@@ -96,3 +96,9 @@ O docking do menu nativo aplica a mesma regra. A execução por botão revalida 
 Cada bloco de raciocínio reconhecido recebe sua própria identidade ao lado do conteúdo, com o mesmo alinhamento da conversa. O avatar usa a imagem thinking da Persona, com fallback para idle/iniciais. Apenas a etapa ativa exibe “Thinking...”; blocos anteriores mantêm nome, avatar e “Raciocínio”. A identidade não é transferida para a resposta final, que tem seu próprio avatar. O nAGI não duplica o texto nativo nem arquiva blocos removidos pelo site.
 
 `early.css` acompanha o content script em `document_start`. `primeAppearance` lê as configurações locais, aplica fonte/paleta e oculta a sidebar conhecida conforme a preferência salva. A inicialização completa aguarda o body, depois retira as marcas provisórias. Pausa e falha de leitura não ativam o preload; um limite de cinco segundos retira suas marcas em caso de falha. A página não fica escondida durante a espera. O objetivo é reduzir o flash nativo, sem prometer pintura anterior à resolução assíncrona do storage.
+
+## Navegação integrada · 0.2.5
+
+A toolbar inclui Chats pinnados, Scheduled, Plugins, Codex e More. Recentes/Pinnados abrem um painel com espaços medidos para as linhas reais da sidebar, incluindo os botões e menus do site. Os nós ficam no mesmo pai e documento, ancorando os popovers no controle original. A fonte/paleta segue as variáveis do tema. Nenhum item destrutivo é recriado no iframe.
+
+O docking é reversível e não altera a preferência salva de sidebar. O limite do painel impede que linhas roladas para fora cubram outras partes da tela. A barra mantém rolagem horizontal em janelas estreitas. Configurações, discovery e docking são módulos distintos para permitir outras composições de layout.

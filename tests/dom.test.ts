@@ -166,7 +166,7 @@ test("instruction-bearing persona blocks original send without visual-only conse
   guard.dispose();
   dom.window.close();
 });
-test("explicit visual-only sends exactly once and keeps lock through generation", async () => {
+test("visual-only sends use the original event once without acquiring a lock", async () => {
   const dom = setup(markup);
   const a = new DOMChatGPTAdapter();
   const state = initialState();
@@ -180,8 +180,8 @@ test("explicit visual-only sends exactly once and keeps lock through generation"
       history: [],
     },
   ];
-  const f = fakeClient();
   let sent = 0;
+  const f = fakeClient();
   const guard = new SendGuard(a, f.client, {
     state: () => state,
     selection: () => ({ personaId: "gm", chainId: null, visualOnly: true }),
@@ -191,121 +191,91 @@ test("explicit visual-only sends exactly once and keeps lock through generation"
   guard.install();
   a.sendButton()!.addEventListener("click", () => sent++);
   a.sendButton()!.click();
-  await tick();
   assert.equal(sent, 1);
-  assert.equal(f.acquisitions, 1);
-  assert.equal(f.releases, 0);
-  const snap = a.snapshot();
-  guard.update({ ...snap, phase: "thinking" });
-  await tick();
-  guard.update({ ...snap, phase: "talking" });
-  assert.equal(f.releases, 0);
-  guard.update({ ...snap, phase: "unknown" });
-  assert.equal(f.releases, 0);
-  guard.update({ ...snap, phase: "idle" });
-  await tick();
-  assert.equal(f.releases, 1);
+  assert.equal(f.acquisitions, 0);
+  guard.update({ ...a.snapshot(), phase: "thinking" });
+  guard.update({ ...a.snapshot(), route: "/c/other", phase: "unknown" });
+  a.sendButton()!.click();
+  assert.equal(sent, 2);
+  assert.equal(f.acquisitions, 0);
   guard.dispose();
   dom.window.close();
 });
-test("editing draft while acquiring lock aborts send and releases reservation", async () => {
+test("new chat ID assignment preserves selection before generation is recognized, with no held-lock warning", () => {
   const dom = setup(markup);
+  dom.window.history.replaceState({}, "", "/");
   const a = new DOMChatGPTAdapter();
   const f = fakeClient();
-  const original = f.client.request;
-  f.client.request = async (type, payload) => {
-    if (type === "lock.acquire")
-      (
-        document.querySelector("#prompt-textarea") as HTMLTextAreaElement
-      ).value = "changed";
-    return original(type, payload);
-  };
-  let sent = 0;
-  const errors: string[] = [];
   const guard = new SendGuard(a, f.client, {
-    state: () => initialState(),
+    state: initialState,
     selection: emptySelection,
-    error: (m) => errors.push(m),
+    error: (m) => assert.fail(m),
     changed: () => {},
   });
-  a.sendButton()!.addEventListener("click", () => sent++);
-  await guard.send();
-  assert.equal(sent, 0);
-  assert.equal(f.releases, 1);
-  assert.equal((a.composer() as HTMLTextAreaElement).value, "changed");
-  assert.match(errors[0], /rascunho/);
+  guard.install();
+  a.sendButton()!.click();
+  dom.window.history.replaceState({}, "", "/c/new");
+  const snapshot = { ...a.snapshot(), phase: "unknown" as const };
+  assert.equal(guard.promotesNewChat(snapshot), true);
+  guard.update(snapshot);
+  assert.equal(guard.promotesNewChat(snapshot), false);
+  assert.equal(f.acquisitions, 0);
   guard.dispose();
   dom.window.close();
 });
-test("draft changed during queue availability check is never submitted", async (t) => {
+test("following a history link cancels new-chat selection promotion", () => {
+  const dom = setup(markup);
+  dom.window.history.replaceState({}, "", "/");
+  const a = new DOMChatGPTAdapter();
+  const guard = new SendGuard(a, fakeClient().client, {
+    state: initialState,
+    selection: emptySelection,
+    error: (m) => assert.fail(m),
+    changed: () => {},
+  });
+  guard.install();
+  a.sendButton()!.click();
+  const link = document.querySelector<HTMLAnchorElement>('a[href="/c/b"]')!;
+  link.addEventListener("click", (e) => e.preventDefault());
+  link.click();
+  dom.window.history.replaceState({}, "", "/c/b");
+  assert.equal(guard.promotesNewChat(a.snapshot()), false);
+  guard.dispose();
+  dom.window.close();
+});
+test("different visual Personas can send while another tab is generating or storage holds a legacy lock", () => {
   const dom = setup(markup);
   const a = new DOMChatGPTAdapter();
+  const state = initialState();
+  state.personas = ["a", "b"].map((id) => ({
+    id,
+    name: id,
+    instructions: "",
+    avatars: {},
+    version: 1,
+    history: [],
+  }));
   let sent = 0;
-  let actions: { label: string; run: () => void }[] = [];
-  let resolveCheck: (v: null) => void = () => {};
   const client = {
-    state: async () => initialState(),
-    mutate: async () => initialState(),
-    subscribe: () => () => {},
-    request: async (type: string) => {
-      if (type === "lock.acquire")
-        return {
-          acquired: false,
-          lock: { personaName: "Other", token: "other" },
-        };
-      if (type === "lock.get")
-        return new Promise<null>((r) => (resolveCheck = r));
-      return true;
+    ...fakeClient().client,
+    request: async () => {
+      assert.fail("Sending must not consult or wait for another tab");
     },
   } as Client;
-  const guard = new SendGuard(a, client, {
-    state: initialState,
-    selection: emptySelection,
-    error: (_m, as) => {
-      if (as) actions = as;
-    },
-    changed: () => {},
-  });
+  const guards = ["a", "b"].map(
+    (personaId) =>
+      new SendGuard(a, client, {
+        state: () => state,
+        selection: () => ({ personaId, chainId: null, visualOnly: true }),
+        error: (m) => assert.fail(m),
+        changed: () => {},
+      }),
+  );
   a.sendButton()!.addEventListener("click", () => sent++);
-  await guard.send();
-  t.mock.timers.enable({ apis: ["setInterval"] });
-  actions[0].run();
-  t.mock.timers.tick(1200);
-  await Promise.resolve();
-  (a.composer() as HTMLTextAreaElement).value = "new private draft";
-  resolveCheck(null);
-  await tick();
-  assert.equal(sent, 0);
-  guard.dispose();
-  t.mock.timers.reset();
-  dom.window.close();
-});
-test("navigating away after generation starts holds lock instead of treating unrelated idle as completion", async () => {
-  const dom = setup(markup);
-  const a = new DOMChatGPTAdapter();
-  const f = fakeClient();
-  const guard = new SendGuard(a, f.client, {
-    state: initialState,
-    selection: emptySelection,
-    error: () => {},
-    changed: () => {},
-  });
-  await guard.send();
-  const snap = a.snapshot();
-  guard.update({ ...snap, phase: "thinking" });
-  await tick();
-  guard.update({
-    ...snap,
-    route: "/c/other",
-    phase: "idle",
-    conversation: {
-      id: "other",
-      title: "Other",
-      url: "https://chatgpt.com/c/other",
-    },
-  });
-  await tick();
-  assert.equal(f.releases, 0);
-  guard.dispose();
+  void guards[0].send();
+  guards[0].update({ ...a.snapshot(), phase: "thinking" });
+  void guards[1].send();
+  assert.equal(sent, 2);
+  guards.forEach((g) => g.dispose());
   dom.window.close();
 });

@@ -9,7 +9,6 @@ import {
   type Persona,
   type Chain,
   type AvatarState,
-  type SendLock,
 } from "../shared/model";
 import type { Client } from "../shared/platform";
 import type { Snapshot } from "../adapter/chatgpt";
@@ -84,7 +83,7 @@ export class SettingsUI {
     );
     const toggles: [keyof Settings, string][] = [
       ["enabled", "Ativar nAGI"],
-      ["personas", "Personas e coordenação de envio entre abas"],
+      ["personas", "Personas e identidade visual"],
       ["chains", "Conversation Chains"],
       ["showAvatar", "Mostrar avatar da Persona na barra"],
       ["showName", "Mostrar nome da Persona na barra"],
@@ -777,53 +776,11 @@ export class SettingsUI {
       ),
     );
     this.body.append(data);
-    try {
-      const lock = await this.ctx.client.request<SendLock | null>("lock.get");
-      this.body.append(
-        el("h3", "Trava global"),
-        el(
-          "pre",
-          JSON.stringify(
-            lock
-              ? {
-                  tabId: lock.tabId,
-                  persona: lock.personaName,
-                  phase: lock.phase,
-                  orphaned: lock.orphaned,
-                  createdAt: new Date(lock.createdAt).toISOString(),
-                }
-              : null,
-            null,
-            2,
-          ),
-        ),
-      );
-      if (lock) {
-        let confirmed = false;
-        const recover = button("Liberar após conferir as outras abas", () => {
-          if (!confirmed) {
-            confirmed = true;
-            recover.textContent =
-              "Confirmo que não há resposta ativa · liberar";
-            this.body.append(
-              note(
-                "Confira todas as abas do ChatGPT. Liberar durante uma geração permite outro envio concorrente.",
-              ),
-            );
-            return;
-          }
-          void this.run(async () => {
-            await this.ctx.client.request("lock.recover", {
-              token: lock.token,
-            });
-            this.render();
-          });
-        });
-        this.body.append(recover);
-      }
-    } catch (e) {
-      this.body.append(el("p", String(e), "error"));
-    }
+    this.body.append(
+      note(
+        "Envios independentes entre abas. nAGI não altera Custom Instructions e não mantém uma trava global de geração.",
+      ),
+    );
     this.body.append(
       button("Atualizar diagnóstico", () => this.render()),
       note(

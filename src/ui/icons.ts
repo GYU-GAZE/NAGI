@@ -1,4 +1,9 @@
 const paths: Record<string, string> = {
+  pin: "m8 3 8 0-1 6 4 4H5l4-4-1-6M12 13v8",
+  scheduled: "M4 5h16v16H4zM8 2v6M16 2v6M4 10h16M8 14h3",
+  plugins: "M8 3v5H3v8h5v5h8v-5h5V8h-5V3z",
+  codex: "m8 6-6 6 6 6m8-12 6 6-6 6M14 3l-4 18",
+  more: "M4 12h1m6 0h1m6 0h1",
   home: "M3 11 12 3l9 8M5 10v11h5v-7h4v7h5V10",
   plus: "M12 4v16M4 12h16",
   recent: "M4 7V3m0 4h4M4 7a9 9 0 1 1-1 8M12 7v5l3 2",

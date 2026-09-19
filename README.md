@@ -1,8 +1,24 @@
-# nAGI · 0.2.4
+# nAGI · 0.2.5
 
 Extensão modular para o **ChatGPT Web oficial**. Sem API key, backend próprio, telemetria ou alteração automática das instruções da conta.
 
 **Este pacote é experimental.** O usuário confirmou que quase toda a revisão 0.2.1 ficou correta no ChatGPT Work/Firefox. A 0.2.2 integra o tema ao funcionamento padrão, corrige a largura de prompts curtos e mostra a identidade durante Thinking. As novas mudanças passaram pelos testes locais; sua confirmação visual no frontend autenticado continua pendente.
+
+## Atualização 0.2.5 · envios independentes e navegação nativa
+
+- O envio não adquire nem aguarda reservas entre abas, mesmo com Personas diferentes. O evento original do ChatGPT segue seu fluxo normal. Reservas de versões anteriores não bloqueiam esta versão.
+- A atribuição do ID ao primeiro chat preserva a seleção local mesmo quando o estado de geração ainda é desconhecido. Uma navegação explícita pelo histórico cancela essa transferência.
+- **Chats pinnados** usa as seções e os estados reconhecidos na sidebar original; não cria uma segunda lista de favoritos.
+- **Chats recentes** e **Chats pinnados** apresentam as linhas nativas no painel nAGI. Os próprios controles e menus do ChatGPT mantêm Share, Rename, Pin, Archive, Delete e Move to Project, conforme disponibilizados pelo site.
+- Quando uma linha tem menu, mas não tem botão Pin direto, o atalho nAGI usa apenas a ação Pin/Unpin do menu associado àquela linha. Sem associação verificável, não executa nenhuma ação. Delete e Archive continuam inteiramente nos menus e confirmações nativos.
+- **Scheduled, Plugins, Codex e More** integram controles reconhecidos na navegação. Um destino ainda não carregado fica indisponível; não são inventados links.
+- **Projects** permanece no painel nAGI com os projetos encontrados na interface. Quando há expansão na sidebar, ela pode carregar mais projetos sem mudar de página. “Ver todos no ChatGPT” é uma escolha explícita, nunca um redirecionamento automático.
+
+**Limites:** não há garantia de listar todos os projetos/chats da conta se o site ainda não carregou seus dados. Os seletores e o posicionamento dos controles foram exercitados em fixtures; faltam testes no frontend autenticado do usuário. Diagnóstico formato 7 registra contagens e disponibilidade da navegação sem títulos, URLs ou conteúdo de menus.
+
+**Custom Instructions:** nAGI continua sem escrever nas instruções da conta. Por isso a coordenação entre gerações foi retirada, independentemente de como o ChatGPT relê essas instruções. A pesquisa de documentação desta revisão não confirmou que uma tarefa Work inteira mantém um snapshot imutável após edições das Custom Instructions. Isso não pode ser presumido numa futura implementação de Personas com instruções reais.
+
+85 testes locais, TypeScript e builds Firefox/Chromium. Atualize na mesma pasta e recarregue a extensão e todas as abas para retirar o fluxo antigo de envio.
 
 ## Atualização 0.2.4 · navegação, raciocínio e inicialização
 
@@ -132,25 +148,19 @@ Recentes usa links carregados na navegação. Projects procura links de projetos
 | Aparência | Presets, fonte local, tamanho, cores, largura e redução opcional de movimento |
 | Navegação | Barra compacta, Novo chat, Recentes, Projects, configurações e retorno à sidebar |
 | Personas | CRUD, histórico de instruções, três imagens, seleção por aba/conversa e indicador visual |
-| Envio | Interceptação de botão/Enter/form, concorrência com a mesma Persona, coordenação entre Personas diferentes, espera cancelável, recuperação explícita |
+| Envio | Evento nativo preservado, abas independentes, validação de instruções não aplicadas e seleção no primeiro chat |
 | Estado visual | Estimativa idle/thinking/talking, inclusive alternância; estado unknown para DOM não reconhecido |
 | Chains | Criar/editar/excluir, adicionar/remover sessão, reordenar, marcar atual, Persona padrão, anterior/próxima |
 | Desempenho | `content-visibility: auto` reversível, preservação dos turnos recentes e métricas de custo do adapter |
-| Recuperação | Pausa global, módulos independentes, configurações fora do ChatGPT e liberação explícita de trava |
+| Recuperação | Pausa global, módulos independentes, configurações fora do ChatGPT |
 
-**Ainda não implementado:** aplicar/restaurar Custom Instructions, auto-rollover, criar continuação em Project, Activity Log, layouts personalizados HTML/CSS, avatares ao lado de cada mensagem, criador de personagens ou virtualização que remova DOM. A mensagem de continuação da Chain fica guardada, sem envio automático.
+**Ainda não implementado:** aplicar/restaurar Custom Instructions, auto-rollover, criar continuação em Project, Activity Log, layouts personalizados HTML/CSS, criador de personagens ou virtualização que remova DOM. A mensagem de continuação da Chain fica guardada, sem envio automático.
 
 ## Travas e recuperação
 
-A trava cobre os envios reconhecidos nas abas com nAGI e o módulo Personas ativos neste perfil do navegador. Ela não controla outros dispositivos, perfis, abas sem a extensão, modo de voz, regeneração ou caminhos de envio que o adapter não reconheça. Por isso não existe promessa de isolamento de Custom Instructions nesta versão.
+Desde 0.2.5, o envio não usa trava entre abas. A validação local apenas evita apresentar instruções de Persona como aplicadas quando não foram. Não há promessa de isolamento de Custom Instructions, que esta versão não modifica.
 
-Ao fechar/recarregar a aba durante uma geração, a trava fica preservada e pode ser marcada como desconectada. Se a resposta não iniciar ou o estado ficar desconhecido, a trava também permanece. Para recuperá-la:
-
-1. Confira as abas e verifique se a resposta terminou ou foi interrompida.
-2. Abra o ícone da extensão → **Configurações e recuperação → Diagnóstico**.
-3. Clique em **Liberar após conferir as outras abas** e confirme.
-
-A trava não expira por tempo. Ela sobrevive à suspensão do service worker, mas não ao encerramento completo da sessão do navegador. A pausa restaura a interface; não cancela uma resposta que já está sendo gerada no ChatGPT.
+Abas antigas ainda executam o código da versão anterior até serem recarregadas. Atualize todas as abas depois de recarregar a extensão. Não é necessário liberar reservas antigas nas configurações da 0.2.5. A pausa restaura a interface; não cancela uma resposta que já está sendo gerada no ChatGPT.
 
 ## Desenvolvimento
 
@@ -162,7 +172,7 @@ npm run check
 npm run demo
 ```
 
-`npm run check` executa TypeScript, testes e os dois builds. `npm run demo` serve uma **fixture sintética local** em `http://localhost:4173/c/demo-session`; ela não usa ChatGPT, uma conta ou IA. Abra duas abas da fixture para testar a trava. Seu armazenamento de teste é separado da extensão e fica no localStorage desse endereço.
+`npm run check` executa TypeScript, testes e os dois builds. `npm run demo` serve uma **fixture sintética local** em `http://localhost:4173/c/demo-session`; ela não usa ChatGPT, uma conta ou IA. Abra duas abas da fixture para testar envios independentes. Seu armazenamento de teste é separado da extensão e fica no localStorage desse endereço.
 
 Para medir renderização: na fixture, expanda **Teste de desempenho**, clique em **Adicionar 600 turnos** uma vez e depois em **Comparar OFF / ON**. Mantenha a aba visível. O teste alterna OFF/ON/ON/OFF e registra mediana e p95 de intervalos entre frames, além de frames acima de 25 ms. Repita com perfil limpo e compare depois com um chat real. Os resultados do exemplo não equivalem ao custo de React no ChatGPT.
 

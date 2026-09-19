@@ -1,3 +1,4 @@
+import { resolveChatRows } from "./navigation";
 import { resolveProjects } from "./projects";
 import { resolveMessages } from "./messages";
 import { selectors as S } from "./selectors";
@@ -106,34 +107,8 @@ export class DOMChatGPTAdapter implements ChatGPTAdapter {
     };
     return this.lastSnapshot;
   }
-  private links(kind: "chat" | "project"): NavLink[] {
-    const seen = new Set<string>();
-    const result: NavLink[] = [];
-    const links = resolveRegions().sidebar.flatMap((root) => [
-      ...root.querySelectorAll<HTMLAnchorElement>("a[href]"),
-    ]);
-    links.forEach((a) => {
-      const u = new URL(a.href, location.href);
-      if (u.origin !== location.origin) return;
-      const match =
-        kind === "chat"
-          ? u.pathname.match(/\/c\/([\w-]+)$/)
-          : u.pathname.match(/^\/g\/(g-p-[^/]+)(?:\/project)?\/?$/);
-      if (!match || seen.has(match[1])) return;
-      seen.add(match[1]);
-      result.push({
-        id: match[1],
-        title:
-          a.textContent?.trim().slice(0, 200) ||
-          a.getAttribute("aria-label") ||
-          match[1],
-        url: `https://chatgpt.com${u.pathname}`,
-      });
-    });
-    return result;
-  }
   recent() {
-    return this.links("chat");
+    return resolveChatRows().map(({ id, title, url }) => ({ id, title, url }));
   }
   projects() {
     return resolveProjects();

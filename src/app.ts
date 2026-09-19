@@ -4,7 +4,6 @@ import {
   type State,
   type Selection,
   type Chain,
-  type SendLock,
 } from "./shared/model";
 import { DOMChatGPTAdapter, type Snapshot } from "./adapter/chatgpt";
 import { ComposerIdentity } from "./features/composer-identity";
@@ -109,7 +108,7 @@ export async function startApp(client: Client) {
       visualOnly: selection.visualOnly,
       generation: latest?.phase,
       selectionReady,
-      ownerTab: guard.lock?.tabId ?? null,
+      crossTabBlocking: false,
       health: latest?.health,
       scanMs: latest?.scanMs,
       performance: optimizer.metrics,
@@ -164,7 +163,7 @@ export async function startApp(client: Client) {
     latest = snapshot;
     if (route !== snapshot.route) {
       const previous = selection;
-      const preserve = !!guard.lock && !old?.conversation;
+      const preserve = !old?.conversation && guard.promotesNewChat(snapshot);
       route = snapshot.route;
       selectionReady = false;
       const epoch = ++routeEpoch;

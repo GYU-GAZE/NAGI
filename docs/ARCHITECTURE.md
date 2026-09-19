@@ -16,21 +16,21 @@
 
 `migrate()` reconhece instalação nova, valida schema 1 e recusa schemas desconhecidos/corrompidos sem substituir dados por defaults. A primeira migração entre versões será adicionada quando surgir um schema 2 real. Limites atuais: 30 Personas, 100 Chains, 500 sessões/Chain e 8 MB no documento local total. Histórico não é apagado silenciosamente para caber na quota.
 
-## Transação de envio do marco 1
+## Envio a partir da 0.2.5
 
-1. Listener captura envio reconhecido por botão, Enter ou submit do composer.
-2. Confere Persona selecionada; com instruções e sem confirmação visual, bloqueia.
-3. Confere que o adapter estima idle.
-4. Solicita reserva ao background, com owner tabId + instanceId + token da transação. Abas diferentes com a mesma Persona podem coexistir; uma Persona diferente ou outra transação na mesma aba aguarda.
-5. Reconfere rascunho, composer, rota, flags e versão da Persona após a operação assíncrona.
-6. Libera exatamente um clique nativo; não recria a requisição nem copia o texto para APIs.
-7. Observa início de geração e só libera ao retornar a idle, ou em cancelamento anterior ao envio.
+`SendGuard` faz somente validação síncrona da Persona e deixa o evento nativo continuar uma vez. Não aguarda o background, consulta reservas nem bloqueia outra aba. Personas com instruções ainda exigem a escolha explícita de “Somente visual”, porque a extensão não aplica instruções na conta.
 
-A espera guarda o contexto no content script e só é iniciada por escolha explícita. Não persiste o rascunho. Cancelar, editar o texto, mudar de rota/Persona ou desabilitar o módulo invalida a espera, inclusive enquanto uma consulta assíncrona está em andamento.
+Um registro transitório da origem do primeiro envio permite transferir a seleção para a URL definitiva do chat, inclusive com fase desconhecida. Links de navegação e popstate cancelam esse registro; ele expira em 60 segundos e é consumido na mudança de rota. Não há rascunho persistido ou fila de envio.
 
-As reservas não usam TTL. Suspensão do worker não perde ownership porque o conjunto fica em session storage. A trava única de versões anteriores é migrada sem descartá-la. Consultas do envio usam seu próprio token; liberar uma reserva não libera as demais. Uma Persona diferente aguarda a liberação de todas as reservas do grupo atual. Fechamento/reload torna o owner órfão, mas não presume que a geração remota acabou. Liberação manual exige o token observado. Uma nova instância não pode liberar silenciosamente o lock de outra. Se o usuário navegar para outra conversa durante a resposta, o idle daquela conversa não libera a transação anterior.
+O protocolo antigo `locks` permanece no background apenas por compatibilidade com abas ainda carregadas na versão anterior. Não participa do envio novo, não aparece como trava global nas configurações e não deve fundamentar uma futura escrita de Custom Instructions sem validação do comportamento real do produto.
 
-**Este protocolo NÃO aplica Custom Instructions.** É a fundação de concorrência, testada independentemente, para uma futura transação de read → backup → write → verify. A interface não informa “Persona aplicada” nem envia silenciosamente sob essa alegação. Abas externas ao protocolo, outros dispositivos, regeneração e voz não estão cobertos. Uma integração futura só deve escrever instruções após resolver esses limites.
+## Navegação nativa a partir da 0.2.5
+
+`adapter/navigation.ts` resolve linhas de chats, seções pinnadas e destinos dentro das regiões de sidebar. `features/navigation-dock.ts` posiciona os nós originais nos espaços do painel/toolbar sem reparentar React ou copiar handlers. Os caminhos de uma sidebar ocultada são revelados somente para esses controles; os demais elementos continuam invisíveis. O iframe continua isolando os editores de opções. Menus e diálogos nativos permanecem no documento original.
+
+Fechar o painel retira as marcas das linhas; pausar restaura todos os controles. Rolagem do iframe e da toolbar atualiza as posições e oculta controles cujo espaço saiu da área visível. O atalho Pin exige associação do menu por aria-controls ou aria-labelledby, revalida conversa/rota e nunca seleciona outra ação. Não há ações de conta na montagem.
+
+Projects não mantém cache persistente de outra conta nem usa endpoints internos: mostra os dados disponíveis na página e oferece expansão nativa quando presente. Isso não equivale a um inventário completo.
 
 ## Desempenho e recuperação
 

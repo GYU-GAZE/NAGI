@@ -26,8 +26,8 @@ JSDOM testa eventos, DOM e lógica. **Não testa layout visual, renderização C
 1. Carregar build no Firefox e Chromium; conferir popup, permissões, console, navegação e opção de pausa.
 2. Em uma conversa descartável, confirmar composer/send/stop e estados no Diagnóstico. Usar sidebar original se os seletores não corresponderem.
 3. Criar Persona com instruções: primeiro envio deve permanecer no composer. Marcar “Somente visual” e confirmar que o texto é enviado uma única vez, sem prompt oculto.
-4. Abrir duas abas com Personas habilitadas. Enquanto A gera, enviar em B com a mesma Persona deve ser permitido. Com uma Persona diferente: esperar/cancelar. Editar o rascunho em B durante a espera deve cancelar o envio.
-5. Fechar/recarregar A durante geração. Verificar lock órfão e recuperação manual. Suspender o worker do Chromium e confirmar que a trava persiste.
+4. Abrir duas abas com Personas habilitadas. Enquanto A gera, enviar em B deve ser permitido tanto com a mesma Persona quanto com uma diferente. Não existe fila entre abas na 0.2.5.
+5. Fechar/recarregar A durante geração e conferir que B continua usando o envio nativo. A seleção do primeiro chat deve acompanhar sua URL definitiva.
 6. Testar ESC, navegação por teclado, IME, Enter e Shift+Enter; não presumir suporte a regeneração, edição ou voz.
 7. Recarregar conversa que pertence a uma Chain; verificar Persona padrão e memória. Adicionar, remover, reordenar e marcar atual. Confirmar que chats fora da Chain continuam fora dela.
 8. Desligar cada módulo e depois pausar tudo. Confirmar sidebar, tema nativo, seleção/cópia e widgets funcionais.
@@ -96,3 +96,11 @@ Os casos adicionais cobrem reservas simultâneas da mesma Persona, bloqueio entr
 A fixture de raciocínio mantém avatares nos blocos anteriores após novas etapas, resposta final e idle. O CSS inicial é verificado antes da criação do body, com paleta salva, preferência de sidebar, pausa, falha de storage e limpeza de marcas. Ambos os manifests usam `document_start` e incluem `early.css`.
 
 Pendente no Firefox autenticado: conferir avatar ao lado do tempo/raciocínio e persistência visual entre etapas; abrir Projects e navegar por um projeto real; enviar em duas abas com a mesma Persona; observar primeiro carregamento com diferentes temas. JSDOM não mede pintura inicial, layout CSS real nem garante os seletores da conta.
+
+## Regressões 0.2.5
+
+85 testes locais, TypeScript e builds. Cobertura nova: envio original uma vez sem consultas a locks; Personas diferentes em abas independentes; atribuição de URL durante fase desconhecida; persistência da seleção no app completo; cancelamento da transferência por navegação explícita; Projects sem redirecionamento automático; seções pinnadas e exclusão de mensagens; destinos globais separados do menu de conversa; preservação de pai/handlers dos nós nativos; nenhum clique na montagem; restauração ao fechar/pausar; coordenadas de iframe e recorte na rolagem; Pin associado exclusivamente ao menu da conversa.
+
+Os testes antigos do Coordinator verificam somente o protocolo de compatibilidade com abas antigas. Não descrevem o comportamento de envio da 0.2.5.
+
+Pendente no Firefox autenticado: primeiro envio em Chat e Work; duas Personas diferentes em abas simultâneas; linhas recentes/pinnadas em sidebar carregada; Pin/Unpin e renomeação; abrir e cancelar Share/Archive/Delete/Move to Project; destinos Scheduled/Plugins/Codex/More; foco, menus, rolagem e zoom. A disponibilidade dos hooks da conta e o posicionamento CSS real não são comprovados por JSDOM. Não há alegação de inventário completo de Projects nem de imutabilidade das Custom Instructions durante uma tarefa Work.

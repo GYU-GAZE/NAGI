@@ -434,7 +434,7 @@ test("mode selector stays beside New chat on home and disappears on send or exis
   }
 });
 
-test("Projects opens the native directory when unloaded, then lists discovered projects outside the sidebar", async () => {
+test("Projects stays in its own panel and opens the native directory only by explicit choice", async () => {
   const f = await fixture();
   try {
     const control = document.createElement("button");
@@ -450,6 +450,8 @@ test("Projects opens the native directory when unloaded, then lists discovered p
     };
     document.querySelector("form")!.append(control);
     click(f.root, "Projects");
+    assert.equal(opens, 0);
+    click(f.panel, "Ver todos no ChatGPT");
     assert.equal(opens, 1);
     click(f.root, "Projects");
     assert.equal(opens, 1);
@@ -458,6 +460,105 @@ test("Projects opens the native directory when unloaded, then lists discovered p
         'a[href="https://chatgpt.com/projects/real-project"]',
       ),
     );
+  } finally {
+    f.cleanup();
+  }
+});
+
+test("recent and pinned panels dock the actual sidebar rows, include native destinations and restore on pause", async () => {
+  const f = await fixture();
+  try {
+    const nav = document.querySelector<HTMLElement>("#history")!;
+    nav.innerHTML =
+      '<button id="scheduled">Scheduled</button><button id="plugins">Plugins</button><a id="codex" href="/codex">Codex</a><button id="nav-more" aria-haspopup="menu">More</button><section><h3>Pinned</h3><ol><li id="pin-row"><a href="/c/one">Pinned one</a><button aria-label="Unpin chat">◆</button><button aria-label="More">⋯</button></li></ol></section><section><h3>Recent chats</h3><ol><li id="recent-row"><a href="/c/two">Recent two</a><button aria-haspopup="menu" aria-label="More">⋯</button></li></ol></section>';
+    const parent = document.querySelector("#recent-row")!.parentElement;
+    await f.client.mutate({ type: "settings", patch: { debug: false } });
+    for (const label of [
+      "Chats pinnados",
+      "Scheduled",
+      "Plugins",
+      "Codex",
+      "More",
+    ])
+      assert.ok(f.root.querySelector(`[aria-label="${label}"]`));
+    assert.equal(
+      document.querySelector("#nav-more")!.getAttribute("data-nagi-nav-target"),
+      "control",
+    );
+    click(f.root, "Chats recentes");
+    assert.equal(f.panel.querySelectorAll(".native-chat-slot").length, 2);
+    assert.equal(
+      document
+        .querySelector("#recent-row")!
+        .getAttribute("data-nagi-nav-target"),
+      "row",
+    );
+    assert.equal(document.querySelector("#recent-row")!.parentElement, parent);
+    assert.ok(f.panel.querySelector('[aria-label="Pin chat"]'));
+    click(f.root, "Chats pinnados");
+    assert.equal(f.panel.querySelectorAll(".native-chat-slot").length, 1);
+    assert.equal(
+      document
+        .querySelector("#recent-row")!
+        .hasAttribute("data-nagi-nav-target"),
+      false,
+    );
+    assert.equal(
+      document.querySelector("#pin-row")!.hasAttribute("data-nagi-nav-target"),
+      true,
+    );
+    click(f.panel, "Fechar painel");
+    assert.equal(document.querySelector("[data-nagi-nav-target=row]"), null);
+    await f.client.mutate({ type: "settings", patch: { enabled: false } });
+    assert.equal(document.querySelector("[data-nagi-nav-path]"), null);
+    assert.equal(document.querySelector("[data-nagi-nav-target]"), null);
+    assert.equal(document.querySelector("#recent-row")!.parentElement, parent);
+  } finally {
+    f.cleanup();
+  }
+});
+
+test("new-chat selection is saved under the assigned conversation ID with unknown generation phase", async () => {
+  const f = await fixture();
+  try {
+    f.dom.window.history.replaceState({}, "", "/");
+    document.querySelector("main")!.replaceChildren();
+    await new Promise((r) => setTimeout(r, 220));
+    await f.client.mutate({
+      type: "persona.save",
+      persona: {
+        id: "test-persona",
+        name: "Identity",
+        instructions: "",
+        avatars: {},
+      },
+      expectedVersion: 0,
+    });
+    // Seed the new-chat selection and trigger a route refresh through a distinct home path.
+    await f.c.selection(1, "/", {
+      personaId: "test-persona",
+      chainId: null,
+      visualOnly: true,
+    });
+    f.dom.window.history.replaceState({}, "", "/c/temp");
+    document.querySelector("main")!.textContent = "temp";
+    await new Promise((r) => setTimeout(r, 220));
+    f.dom.window.history.replaceState({}, "", "/");
+    document.querySelector("main")!.textContent = "";
+    await new Promise((r) => setTimeout(r, 220));
+    const send = document.querySelector<HTMLButtonElement>(
+      "[data-testid=send-button]",
+    )!;
+    send.click();
+    f.dom.window.history.replaceState({}, "", "/c/assigned");
+    document.querySelector("main")!.innerHTML =
+      '<div data-message-author-role="user">hello</div>';
+    await new Promise((r) => setTimeout(r, 240));
+    assert.equal(
+      (await f.c.selection(1, "/c/assigned")).personaId,
+      "test-persona",
+    );
+    assert.equal(f.root.textContent?.includes("trava foi mantida"), false);
   } finally {
     f.cleanup();
   }

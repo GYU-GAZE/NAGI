@@ -9,6 +9,20 @@ import { icon } from "./icons";
 import { networkCSS } from "./network-css";
 import { ModeSwitcher } from "./mode-switcher";
 import { resolveProjectsControl } from "../adapter/projects";
+import {
+  resolveChatRows,
+  resolveSidebarControl,
+  resolveProjectsExpansion,
+  nativePin,
+  nativeChatMenu,
+  pinChat,
+  type SidebarDestination,
+  type NativeChatRow,
+} from "../adapter/navigation";
+import {
+  NavigationDock,
+  type NavigationDockTarget,
+} from "../features/navigation-dock";
 import { isModeSelectionPage } from "../adapter/modes";
 import { HeaderIntegration } from "../features/header";
 import type { State, Selection, Chain, Phase } from "../shared/model";
@@ -46,6 +60,12 @@ export class Shell {
     this.prompts.host,
     this.modes.host,
   );
+  private navigationDock = new NavigationDock();
+  private shortcutSlots = new Map<SidebarDestination, HTMLElement>();
+  private rowTargets: NavigationDockTarget[] = [];
+  private navigationBody: HTMLElement | null = null;
+  private navigationRows: NativeChatRow[] = [];
+  private navigationKey = "";
   private resizeObserver: ResizeObserver | null = null;
   private onResize = () => this.updateHeader();
   constructor(private ctx: ShellContext) {
@@ -63,6 +83,7 @@ export class Shell {
     this.shadow.append(style, this.bar, this.context.host, this.messages);
     document.body.append(this.host);
     this.isolated = new IsolatedPanel(this.panel, () => this.close());
+    this.navigationDock.watchFrame(this.isolated.frame);
     window.addEventListener("resize", this.onResize);
     if (typeof ResizeObserver !== "undefined") {
       this.resizeObserver = new ResizeObserver(this.onResize);
@@ -88,6 +109,9 @@ export class Shell {
       s.enabled && s.navigation === "topbar"
         ? "position:fixed;z-index:2147483600;top:8px;left:50%;transform:translateX(-50%);"
         : "position:fixed;z-index:2147483600;bottom:16px;right:16px;";
+    this.navigationDock.refresh([]);
+    this.shortcutSlots.clear();
+    if (!s.enabled || s.navigation === "native") this.close();
     this.bar.replaceChildren();
     if (!s.enabled || s.navigation === "native") {
       this.bar.append(
@@ -109,8 +133,18 @@ export class Shell {
       el("span", "nAGI", "brand"),
       button("Novo chat", () => this.ctx.adapter.newChat(), "+"),
       button("Chats recentes", () => this.open("recent"), "◷"),
+      button("Chats pinnados", () => this.open("pinned"), "♧"),
       button("Projects", () => this.open("projects"), "▱"),
     );
+    for (const [kind, label] of this.destinations()) {
+      const slot = button(label, () =>
+        this.message(
+          `${label} ainda não foi carregado na navegação do ChatGPT.`,
+        ),
+      );
+      this.shortcutSlots.set(kind, slot);
+      this.bar.append(slot);
+    }
     if (s.chains)
       this.bar.append(
         button("Conversation Chains", () => this.open("chains"), "⛓"),
@@ -181,8 +215,18 @@ export class Shell {
       home,
       tool("Novo chat", "plus", () => this.ctx.adapter.newChat()),
       tool("Chats recentes", "recent", () => this.open("recent")),
+      tool("Chats pinnados", "pin", () => this.open("pinned")),
       tool("Projects", "folder", () => this.open("projects")),
     );
+    for (const [kind, label] of this.destinations()) {
+      const slot = tool(label, kind, () =>
+        this.message(
+          `${label} ainda não foi carregado na navegação do ChatGPT.`,
+        ),
+      );
+      this.shortcutSlots.set(kind, slot);
+      this.bar.append(slot);
+    }
     if (s.chains)
       this.bar.append(
         tool("Conversation Chains", "chain", () => this.open("chains")),
@@ -268,6 +312,7 @@ export class Shell {
     }
     this.auxiliaryPanels.apply(network);
     this.isolated.resize();
+    this.refreshNavigation();
   }
   update(snapshot: Snapshot) {
     this.currentPhase = snapshot.phase;
@@ -305,23 +350,24 @@ export class Shell {
     this.messages.append(box);
   }
   close() {
+    this.rowTargets = [];
+    this.navigationBody = null;
+    this.navigationRows = [];
+    this.navigationKey = "";
     this.isolated.hide();
     this.menu = null;
+    this.refreshNavigation();
     this.lastFocus?.focus();
   }
   open(kind: string) {
-    if (kind === "projects" && !this.ctx.adapter.projects().length) {
-      const control = resolveProjectsControl();
-      if (control) {
-        this.close();
-        control.click();
-        return;
-      }
-    }
     if (this.menu === kind) {
       this.close();
       return;
     }
+    this.rowTargets = [];
+    this.navigationBody = null;
+    this.navigationRows = [];
+    this.navigationKey = "";
     this.menu = kind;
     this.lastFocus = this.shadow.activeElement as HTMLElement | null;
     this.panel.replaceChildren();
@@ -332,6 +378,7 @@ export class Shell {
         settings: "Configurações",
         debug: "Diagnóstico",
         recent: "Chats recentes",
+        pinned: "Chats pinnados",
         projects: "Projects",
         chains: "Conversation Chains",
         answer: "Answer with…",
@@ -349,11 +396,12 @@ export class Shell {
         kind === "debug" ? "Diagnóstico" : "Geral",
       );
     }
-    if (kind === "recent" || kind === "projects") {
-      const links =
-        kind === "recent"
-          ? this.ctx.adapter.recent()
-          : this.ctx.adapter.projects();
+    if (kind === "recent" || kind === "pinned") {
+      this.navigationBody = body;
+      this.renderChatNavigation();
+    }
+    if (kind === "projects") {
+      const links = this.ctx.adapter.projects();
       const list = el("div", undefined, "list");
       for (const link of links) {
         const a = el("a", link.title);
@@ -363,58 +411,163 @@ export class Shell {
       body.append(
         list,
         note(
-          kind === "projects"
-            ? "Projetos encontrados na página e nos painéis do ChatGPT."
-            : "Conversas recentes disponíveis na navegação.",
+          links.length
+            ? "Projetos carregados pelo ChatGPT nesta página. A lista pode não incluir projetos ainda não carregados."
+            : "Nenhum projeto foi carregado nesta página ainda.",
         ),
       );
-      if (!links.length)
-        body.prepend(
-          note(
-            kind === "projects"
-              ? "O ChatGPT ainda não disponibilizou a lista de projetos nesta página."
-              : "Nenhum chat recente carregado nesta página.",
-          ),
-        );
-      if (kind === "projects")
+      const expand = resolveProjectsExpansion();
+      if (expand)
         body.append(
-          button("Atualizar projetos", () => {
-            this.menu = null;
-            this.open("projects");
+          button("Carregar projetos da sidebar", () => {
+            expand.click();
+            // Rendering remains on this page; refresh reads whatever the native UI loads.
           }),
         );
       body.append(
-        button(
-          kind === "projects"
-            ? "Carregar navegação de projetos"
-            : "Abrir sidebar original",
-          () => {
-            void this.ctx.client
-              .mutate({ type: "settings", patch: { hideSidebar: false } })
-              .then((s) => {
-                this.ctx.refresh(s);
-                this.ctx.adapter.showSidebar(true);
-                if (kind === "projects") {
-                  const toggle = document.querySelector<HTMLElement>(
-                    'button[aria-label="Open sidebar"],button[aria-label="Abrir barra lateral"]',
-                  );
-                  toggle?.click();
-                  this.menu = null;
-                  this.open("projects");
-                }
-              })
-              .catch((e) => this.message(String(e)));
-          },
-        ),
+        button("Atualizar projetos", () => {
+          this.menu = null;
+          this.open("projects");
+        }),
       );
+      const native = resolveProjectsControl();
+      if (native)
+        body.append(
+          button("Ver todos no ChatGPT", () => {
+            this.close();
+            native.click();
+          }),
+        );
     }
     if (kind === "prompts") this.prompts.renderList(body, () => this.close());
     if (kind === "answer") this.answer(body);
     if (kind === "chains") this.chains(body);
     this.isolated.resize();
+    this.refreshNavigation();
     (
       body.querySelector("input,select,button,a") as HTMLElement | null
     )?.focus();
+  }
+  private destinations(): [SidebarDestination, string][] {
+    return [
+      ["scheduled", "Scheduled"],
+      ["plugins", "Plugins"],
+      ["codex", "Codex"],
+      ["more", "More"],
+    ];
+  }
+  private renderChatNavigation() {
+    const body = this.navigationBody;
+    if (!body || !["recent", "pinned"].includes(this.menu || "")) return;
+    // Keep active native menus attached to the same live trigger until dismissed.
+    if (
+      [
+        ...document.querySelectorAll<HTMLElement>("[role=menu],[role=dialog]"),
+      ].some(
+        (n) =>
+          !n.closest("[hidden],[data-state=closed]") &&
+          n.ownerDocument.defaultView!.getComputedStyle(n).display !== "none" &&
+          n.ownerDocument.defaultView!.getComputedStyle(n).visibility !==
+            "hidden",
+      ) &&
+      this.navigationKey
+    )
+      return;
+    const rows = resolveChatRows().filter(
+      (r) => this.menu !== "pinned" || r.pinned,
+    );
+    const key = JSON.stringify(rows.map((r) => [r.id, r.title, r.pinned]));
+    if (
+      key === this.navigationKey &&
+      rows.every((r, i) => r.row === this.navigationRows[i]?.row)
+    )
+      return;
+    this.navigationRows = rows;
+    this.navigationKey = key;
+    body.replaceChildren();
+    this.rowTargets = [];
+    const list = el("div", undefined, "list native-chat-list");
+    for (const item of rows) {
+      const slot = el("div", undefined, "native-chat-slot");
+      slot.style.cssText = "height:44px;min-height:44px;width:100%";
+      slot.setAttribute("aria-hidden", "true");
+      const row = el("div");
+      row.style.cssText = "display:flex;gap:6px;align-items:center;min-width:0";
+      slot.style.flex = "1";
+      row.append(slot);
+      if (!nativePin(item.row) && nativeChatMenu(item.row)) {
+        const pin = button(
+          item.pinned ? "Unpin chat" : "Pin chat",
+          () => {
+            pin.disabled = true;
+            void pinChat(item.id)
+              .then((done) => {
+                if (!done)
+                  this.message(
+                    "Não foi possível reconhecer Pin nesta conversa. Use ⋯ na própria linha para abrir o menu original.",
+                  );
+                this.navigationKey = "";
+                this.refreshNavigation();
+              })
+              .catch(() =>
+                this.message(
+                  "Não foi possível acionar Pin. Use o menu ⋯ da conversa.",
+                ),
+              )
+              .finally(() => {
+                pin.disabled = false;
+              });
+          },
+          item.pinned ? "◆" : "◇",
+        );
+        pin.style.flexShrink = "0";
+        row.append(pin);
+      }
+      list.append(row);
+      this.rowTargets.push({
+        node: item.row,
+        sidebar: item.sidebar,
+        slot,
+        kind: "row",
+      });
+    }
+    body.append(
+      list,
+      note(
+        rows.length
+          ? "Controles originais do ChatGPT: use Pin e ⋯ na linha da conversa."
+          : this.menu === "pinned"
+            ? "Nenhum chat pinnado reconhecido na navegação carregada."
+            : "Nenhum chat recente carregado nesta página.",
+      ),
+    );
+    body.append(
+      button("Atualizar lista", () => {
+        this.navigationKey = "";
+        this.renderChatNavigation();
+        this.isolated.resize();
+        this.refreshNavigation();
+      }),
+    );
+    this.isolated.resize();
+  }
+  private refreshNavigation() {
+    const s = this.ctx.state().settings;
+    if (!s.enabled || s.navigation !== "topbar") {
+      this.navigationDock.refresh([]);
+      return;
+    }
+    this.renderChatNavigation();
+    const targets = [...this.rowTargets];
+    for (const [kind, slot] of this.shortcutSlots) {
+      const native = resolveSidebarControl(kind);
+      if (slot instanceof HTMLButtonElement) slot.disabled = !native;
+      slot.title = native
+        ? slot.getAttribute("aria-label") || kind
+        : `${kind}: não encontrado na navegação carregada`;
+      if (native) targets.push({ ...native, slot, kind: "control" });
+    }
+    this.navigationDock.refresh(targets);
   }
   private answer(body: HTMLElement) {
     const current = this.ctx.selection();
@@ -559,6 +712,7 @@ export class Shell {
   dispose() {
     window.removeEventListener("resize", this.onResize);
     this.resizeObserver?.disconnect();
+    this.navigationDock.dispose();
     this.nativeContext.dispose();
     this.auxiliaryPanels.dispose();
     this.prompts.dispose();

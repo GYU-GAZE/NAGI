@@ -1,3 +1,4 @@
+import { resolveChatRows, resolveSidebarControl } from "../adapter/navigation";
 import { resolveProjects, resolveProjectsControl } from "../adapter/projects";
 import { resolveModeControls } from "../adapter/modes";
 import { resolveAuxiliaryPanels } from "./auxiliary-panels";
@@ -139,7 +140,7 @@ export function createDiagnosticReport(state: State, doc: Document = document) {
   const root = doc.documentElement;
   return {
     format: "nagi-diagnostics",
-    formatVersion: 6,
+    formatVersion: 7,
     extensionVersion: VERSION,
     createdAt: new Date().toISOString(),
     privacy:
@@ -202,6 +203,7 @@ export function createDiagnosticReport(state: State, doc: Document = document) {
       headerIntegration:
         root.hasAttribute("data-nagi-header-active") ||
         !!doc.querySelector("[data-nagi-context-header]"),
+      navigationTargets: doc.querySelectorAll("[data-nagi-nav-target]").length,
       reasoningIdentities: doc.querySelectorAll("[data-nagi-reasoning]").length,
       homeRegions: doc.querySelectorAll("[data-nagi-home]").length,
       nativePanels: doc.querySelectorAll("[data-nagi-native-panel]").length,
@@ -222,6 +224,15 @@ export function createDiagnosticReport(state: State, doc: Document = document) {
         .length,
     },
     matches: {
+      navigation: {
+        chats: resolveChatRows(doc).length,
+        pinned: resolveChatRows(doc).filter((r) => r.pinned).length,
+        scheduled: !!resolveSidebarControl("scheduled", doc),
+        plugins: !!resolveSidebarControl("plugins", doc),
+        codex: !!resolveSidebarControl("codex", doc),
+        more: !!resolveSidebarControl("more", doc),
+        crossTabBlocking: false,
+      },
       projects: {
         links: resolveProjects(doc).length,
         nativeControl: !!resolveProjectsControl(doc),
