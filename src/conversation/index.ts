@@ -14,10 +14,11 @@ export class ConversationIndex {
   private nodes = new Map<string, WeakRef<HTMLElement>>();
   private identities = new WeakMap<HTMLElement, string>();
   private dirty = new Set<string>();
+  private sorted?: MessageRecord[];
   annotations = new Map<string, Annotation>();
   revision = 0;
   constructor(readonly conversationId: string) {}
-  get all() { return [...this.records.values()].sort((a,b) => a.order - b.order || a.id.localeCompare(b.id)); }
+  get all() { return this.sorted ??= [...this.records.values()].sort((a,b) => a.order - b.order || a.id.localeCompare(b.id)); }
   get size() { return this.records.size; }
   get loadedCount() { return [...this.nodes.keys()].filter(id => this.node(id)).length; }
   get(id: string) { return this.records.get(id); }
@@ -26,12 +27,22 @@ export class ConversationIndex {
   hydrate(rows: MessageRecord[], annotations: Annotation[] = []) {
     for (const r of rows) if (r.conversationId === this.conversationId && !this.dirty.has(r.id)) this.records.set(r.id,r);
     for (const a of annotations) if (a.conversationId === this.conversationId) this.annotations.set(a.messageId,a);
-    this.revision++;
+    this.sorted = undefined; this.revision++;
   }
-  capture(regions: {node: HTMLElement; role: 'user' | 'assistant'}[]) {
+  capture(regions: {node: HTMLElement; role: 'user' | 'assistant'}[], changed?: Set<HTMLElement>) {
     let previous: MessageRecord | undefined;
+    let lastOrder = this.all.at(-1)?.order ?? -1;
+    const following: (MessageRecord | undefined)[] = [];
+    let nextKnown: MessageRecord | undefined;
+    for (let j=regions.length-1;j>=0;j--) {
+      following[j]=nextKnown;
+      const n=regions[j].node, native=n.getAttribute('data-message-id');
+      nextKnown=this.records.get(native ? `native:${native}` : this.identities.get(n)||'') || nextKnown;
+    }
     for (let i = 0; i < regions.length; i++) {
       const {node,role} = regions[i];
+      const existing=this.identities.get(node);
+      if(changed && !changed.has(node) && existing && this.records.has(existing)) {previous=this.records.get(existing);continue;}
       const nativeId = node.getAttribute('data-message-id') || node.closest('[data-message-id]')?.getAttribute('data-message-id') || undefined;
       // Exclude extension identities and native action labels from searchable text.
       const clone = node.cloneNode(true) as HTMLElement;
@@ -47,17 +58,15 @@ export class ConversationIndex {
       const old = this.records.get(id);
       let order = old?.order;
       if (order === undefined) {
-        const next = regions.slice(i+1).map(r => {
-          const key = r.node.getAttribute('data-message-id');
-          return this.records.get(key ? `native:${key}` : this.identities.get(r.node) || '');
-        }).find(Boolean);
-        order = previous ? next && next.order > previous.order ? (previous.order + next.order)/2 : previous.order + 1 : next ? next.order - 1 : (this.all.at(-1)?.order ?? -1) + 1;
+        const next = following[i];
+        order = previous ? next && next.order > previous.order ? (previous.order + next.order)/2 : previous.order + 1 : next ? next.order - 1 : lastOrder + 1;
       }
+      lastOrder = Math.max(lastOrder,order);
       const headings = [...clone.querySelectorAll('h1,h2,h3,h4,h5,h6')].map((h,i) => ({key: h.id || `heading:${i}`, level: Number(h.tagName[1]), text: (h.textContent || '').trim()}));
       const attachments = [...node.querySelectorAll('[data-testid*=attachment],[download]')].map(n => (n.getAttribute('download') || n.getAttribute('aria-label') || n.textContent || 'Anexo').trim().slice(0,200));
       const parentId = node.getAttribute('data-parent-message-id') || undefined;
       const row: MessageRecord = {conversationId:this.conversationId,id,nativeId,parentId,role,order,text,preview:text.replace(/\s+/g,' ').slice(0,240),headings,attachments,updatedAt:Date.now()};
-      if (!old || JSON.stringify({...old,updatedAt:0}) !== JSON.stringify({...row,updatedAt:0})) { this.records.set(id,row); this.dirty.add(id); this.revision++; }
+      if (!old || JSON.stringify({...old,updatedAt:0}) !== JSON.stringify({...row,updatedAt:0})) { this.records.set(id,row); this.sorted=undefined; this.dirty.add(id); this.revision++; }
       previous = this.records.get(id);
     }
     // WeakRefs alone do not keep detached trees alive; discard stale lookup entries too.
