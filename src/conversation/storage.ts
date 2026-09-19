@@ -12,7 +12,7 @@ export class ConversationStore {
  constructor(private factory: IDBFactory = indexedDB, private name='nagi-conversations') {}
  private db() {
   return this.opened ??= new Promise((resolve,reject)=>{
-   const r=this.factory.open(this.name,DATABASE_VERSION);
+   const r=this.factory.open(this.name,DATABASE_VERSION);let blocked=false;
    r.onupgradeneeded=()=>{
     const db=r.result;
     if(!db.objectStoreNames.contains('messages')) db.createObjectStore('messages',{keyPath:['conversationId','id']}).createIndex('conversation','conversationId');
@@ -21,9 +21,9 @@ export class ConversationStore {
     if(!db.objectStoreNames.contains('recovery')) db.createObjectStore('recovery',{keyPath:'key'});
     if(!db.objectStoreNames.contains('preferences')) db.createObjectStore('preferences',{keyPath:'key'});
    };
-   r.onsuccess=()=>{r.result.onversionchange=()=>{r.result.close();this.opened=undefined;};resolve(r.result);};
+   r.onsuccess=()=>{if(blocked){r.result.close();return;}r.result.onversionchange=()=>{r.result.close();this.opened=undefined;};resolve(r.result);};
    r.onerror=()=>{this.opened=undefined;reject(r.error);};
-   r.onblocked=()=>{this.opened=undefined;reject(new Error('Feche outras abas da extensão para atualizar o banco local.'));};
+   r.onblocked=()=>{blocked=true;this.opened=undefined;reject(new Error('Feche outras abas da extensão para atualizar o banco local.'));};
   });
  }
  private assetIds = new Map<string,string>();
@@ -46,6 +46,9 @@ export class ConversationStore {
   s.settings.layout.userAvatar=decode(s.settings.layout.userAvatar);
   for(const p of s.personas)for(const key of Object.keys(p.avatars) as (keyof typeof p.avatars)[])p.avatars[key]=decode(p.avatars[key]!);
   return migrate(s);
+ }
+ async generation():Promise<number> {
+  const db=await this.db(),tx=db.transaction('preferences','readonly'),done=complete(tx),row=await request(tx.objectStore('preferences').get('state'));await done;return row?.value?.indexGeneration??0;
  }
  async readState():Promise<State|undefined> {
   const db=await this.db(),tx=db.transaction(['preferences','assets'],'readonly'),done=complete(tx);

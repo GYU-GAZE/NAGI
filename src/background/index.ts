@@ -38,11 +38,10 @@ chrome.runtime.onMessage.addListener((m, sender, sendResponse) => {
         if (typeof m.conversationId !== "string" || m.conversationId.length > 200) throw new Error("Conversa inválida");
         return conversations.load(m.conversationId);
       case "index.write": return coordinator.atomic(async()=> {
-        const state=await vault.get("nagi") as import("../shared/model").State;
-        if(m.generation!==state.indexGeneration)throw new Error("Estado mudou; recarregue a conversa antes de salvar o índice");
+        if(m.generation!==await conversations.generation())throw new Error("Estado mudou; recarregue a conversa antes de salvar o índice");
         return conversations.write(m.messages,m.annotations??[]);
       });
-      case "index.preference": return conversations.preference(m.key, m.value);
+      case "index.preference": return coordinator.atomic(()=>conversations.preference(m.key, m.value));
       case "index.export": return conversations.dump();
       case "backup.export": return coordinator.atomic(async()=>{await vault.get('nagi');return conversations.backup();});
       case "backup.recovery": return coordinator.atomic(()=>conversations.recoveryBackup());
