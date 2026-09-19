@@ -41,7 +41,11 @@
         flex-direction: column;
       }
       header {
-        padding: 66px 24px 12px;
+        padding: 8px 24px;
+        min-height: 48px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
         border-bottom: 1px solid #444;
         font-size: 13px;
         color: #bbb;
@@ -110,7 +114,7 @@
           width: 170px;
         }
         header {
-          padding-top: 70px;
+          padding-top: 8px;
         }
       }
     </style>
@@ -131,9 +135,20 @@
       </details>
     </nav>
     <div class="content">
-      <header>
-        AMBIENTE DE TESTE LOCAL · sem conta, sem IA, sem envio externo<br />O
-        botão Enviar simula thinking → talking → thinking → talking → idle
+      <header id="page-header">
+        <span>Sessão de teste · Work</span>
+        <div>
+          <button id="demo-share">Share</button
+          ><button
+            id="demo-more"
+            aria-label="More options"
+            aria-haspopup="menu"
+          >
+            ···</button
+          ><button id="demo-files" aria-label="Files and sources">
+            Files &amp; Sources
+          </button>
+        </div>
       </header>
       <main><div id="conversation"></div></main>
       <form>
@@ -151,6 +166,13 @@
         </button>
       </form>
     </div>
+    <dialog id="demo-dialog">
+      <p>
+        Controle nativo simulado na fixture local. Nenhuma ação externa foi
+        executada.
+      </p>
+      <form method="dialog"><button>Fechar</button></form>
+    </dialog>
     <script src="/build/demo.js"></script>
   </body>
 </html>

@@ -118,7 +118,7 @@ function click(root: ParentNode, label: string) {
   assert.ok(b, `Button: ${label}`);
   b.click();
 }
-test("full app mounts compact controls, theme/performance are independent and pause restores native DOM", async () => {
+test("full app mounts network controls, theme/performance are independent and pause restores native DOM", async () => {
   const f = await fixture();
   try {
     assert.equal(
@@ -130,13 +130,13 @@ test("full app mounts compact controls, theme/performance are independent and pa
       false,
     );
     assert.equal(
-      document.querySelector("#page-header")!.hasAttribute("data-nagi-header"),
+      document
+        .querySelector("#page-header")!
+        .hasAttribute("data-nagi-context-header"),
       true,
     );
     assert.equal(
-      document
-        .querySelector("#nagi-root")!
-        .hasAttribute("data-nagi-header-shell"),
+      document.querySelector("#nagi-root")!.hasAttribute("data-network-shell"),
       true,
     );
     assert.equal(document.querySelectorAll("[data-nagi-contain]").length, 0);
@@ -165,13 +165,13 @@ test("full app mounts compact controls, theme/performance are independent and pa
       false,
     );
     assert.equal(
-      document.querySelector("#page-header")!.hasAttribute("data-nagi-header"),
+      document
+        .querySelector("#page-header")!
+        .hasAttribute("data-nagi-context-header"),
       false,
     );
     assert.equal(
-      document
-        .querySelector("#nagi-root")!
-        .hasAttribute("data-nagi-header-shell"),
+      document.querySelector("#nagi-root")!.hasAttribute("data-network-shell"),
       false,
     );
     assert.equal(f.root.querySelectorAll("nav button").length, 1);
@@ -306,6 +306,63 @@ test("shared diagnostics can be copied from isolated panel without private conve
     assert.equal(report.matches.composer, true);
     assert.equal(JSON.stringify(report).includes("PRIVATE DRAFT"), false);
     assert.equal(report.active.panelFrame, true);
+  } finally {
+    f.cleanup();
+  }
+});
+
+test("layout settings persist module toggles, keep editing isolated and restore compact/native header on switch", async () => {
+  const f = await fixture();
+  try {
+    click(f.root, "Configurações");
+    click(f.panel, "Layout");
+    const grid = [...f.panel.querySelectorAll("label")]
+      .find((e) => e.textContent === "Grade de fundo")!
+      .querySelector<HTMLInputElement>("input")!;
+    grid.click();
+    await tick();
+    assert.equal((await f.client.state()).settings.layout.grid, false);
+    const variant = f.panel.querySelector<HTMLSelectElement>("select")!;
+    variant.value = "compact";
+    variant.dispatchEvent(new f.dom.window.Event("change", { bubbles: true }));
+    await tick();
+    assert.equal(
+      document.querySelector("#nagi-root")!.hasAttribute("data-network-shell"),
+      false,
+    );
+    assert.equal(
+      document
+        .querySelector("header")!
+        .hasAttribute("data-nagi-context-header"),
+      false,
+    );
+    assert.equal(
+      document.querySelector("header")!.hasAttribute("data-nagi-header"),
+      true,
+    );
+    click(f.panel, "Aplicar visual da referência");
+    await tick();
+    const state = await f.client.state();
+    assert.equal(state.settings.layout.variant, "network");
+    assert.equal(state.settings.theme.width, 1040);
+    assert.equal(
+      document.querySelector("#nagi-root")!.hasAttribute("data-network-shell"),
+      true,
+    );
+    assert.equal(
+      document.querySelector("header")!.hasAttribute("data-nagi-header"),
+      false,
+    );
+    assert.equal(
+      document
+        .querySelector("header")!
+        .hasAttribute("data-nagi-context-header"),
+      true,
+    );
+    assert.equal(
+      document.querySelector<HTMLIFrameElement>("#nagi-panel-frame")!.style.top,
+      "148px",
+    );
   } finally {
     f.cleanup();
   }

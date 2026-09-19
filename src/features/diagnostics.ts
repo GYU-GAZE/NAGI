@@ -1,3 +1,4 @@
+import { resolveMessages } from "../adapter/messages";
 import type { State } from "../shared/model";
 import { resolveHeader, headerControls, headerAction } from "../adapter/header";
 import { VERSION } from "../shared/version";
@@ -114,6 +115,7 @@ function ancestors(el: Element | null) {
 export function createDiagnosticReport(state: State, doc: Document = document) {
   const r = resolveRegions(doc);
   const header = resolveHeader(doc);
+  const messages = resolveMessages(doc);
   const win = doc.defaultView;
   const browser =
     win?.navigator.userAgent.match(/(?:Firefox|Edg|Chrome)\/[\d.]+/)?.[0] ??
@@ -124,7 +126,7 @@ export function createDiagnosticReport(state: State, doc: Document = document) {
   const root = doc.documentElement;
   return {
     format: "nagi-diagnostics",
-    formatVersion: 2,
+    formatVersion: 3,
     extensionVersion: VERSION,
     createdAt: new Date().toISOString(),
     privacy:
@@ -153,6 +155,20 @@ export function createDiagnosticReport(state: State, doc: Document = document) {
       showName: state.settings.showName,
       reduceMotion: state.settings.reduceMotion,
       debug: state.settings.debug,
+      layout: {
+        variant: state.settings.layout.variant,
+        contextBar: state.settings.layout.contextBar,
+        promptNavigator: state.settings.layout.promptNavigator,
+        messageCards: state.settings.layout.messageCards,
+        messageAvatars: state.settings.layout.messageAvatars,
+        messageNames: state.settings.layout.messageNames,
+        grid: state.settings.layout.grid,
+        composerFrame: state.settings.layout.composerFrame,
+        accent: state.settings.layout.accent,
+        avatarSize: state.settings.layout.avatarSize,
+        messageGap: state.settings.layout.messageGap,
+        hasUserAvatar: !!state.settings.layout.userAvatar,
+      },
       theme: {
         font: state.settings.theme.font,
         fontSize: state.settings.theme.fontSize,
@@ -167,9 +183,17 @@ export function createDiagnosticReport(state: State, doc: Document = document) {
       personas: state.personas.length,
       chains: state.chains.length,
       turns: doc.querySelectorAll(S.turn).length,
+      userMessages: messages.filter((r) => r.role === "user").length,
+      assistantMessages: messages.filter((r) => r.role === "assistant").length,
     },
     active: {
-      headerIntegration: root.hasAttribute("data-nagi-header-active"),
+      headerIntegration:
+        root.hasAttribute("data-nagi-header-active") ||
+        !!doc.querySelector("[data-nagi-context-header]"),
+      networkLayout: root.getAttribute("data-nagi-layout") === "network",
+      dockedControls: doc.querySelectorAll("[data-nagi-docked]").length,
+      messageCards: doc.querySelectorAll("[data-nagi-message-card]").length,
+      promptTargets: doc.querySelectorAll("[data-nagi-prompt-target]").length,
       headerStacked: root.hasAttribute("data-nagi-header-stacked"),
       theme: root.hasAttribute("data-nagi-theme"),
       sidebarCollapse: root.hasAttribute("data-nagi-sidebar-collapsed"),
@@ -189,6 +213,11 @@ export function createDiagnosticReport(state: State, doc: Document = document) {
       outerLayers: r.composerOuter.length,
     },
     regions: {
+      messageSamples: messages.slice(0, 4).map((r) => ({
+        role: r.role,
+        node: elementDescription(r.node),
+        turn: elementDescription(r.turn),
+      })),
       headerAncestors: ancestors(header).slice(0, 5),
       headerChildren: header
         ? [...header.children].slice(0, 12).map(elementDescription)

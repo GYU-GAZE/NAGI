@@ -7,6 +7,9 @@ import {
   type SendLock,
 } from "./shared/model";
 import { DOMChatGPTAdapter, type Snapshot } from "./adapter/chatgpt";
+import { ComposerIdentity } from "./features/composer-identity";
+import { LayoutTheme } from "./features/layout-theme";
+import { MessageLayout } from "./features/message-layout";
 import { Appearance } from "./features/appearance";
 import { TurnOptimizer } from "./features/performance";
 import { SendGuard } from "./features/send-guard";
@@ -24,7 +27,10 @@ export async function startApp(client: Client) {
   const adapter = new DOMChatGPTAdapter();
   const appearance = new Appearance();
   const optimizer = new TurnOptimizer();
+  const layout = new LayoutTheme();
+  const messages = new MessageLayout();
   let shell: Shell;
+  const composerIdentity = new ComposerIdentity(() => shell.open("answer"));
   const errors: string[] = [];
   const safe = (name: string, fn: () => void) => {
     try {
@@ -43,6 +49,10 @@ export async function startApp(client: Client) {
     await client.request("selection", { key: capturedRoute, value });
     if (route !== capturedRoute) return;
     shell.render();
+    safe("message-layout", () =>
+      messages.apply(current, selection, latest?.phase ?? "unknown"),
+    );
+    safe("composer-identity", () => composerIdentity.apply(current, selection));
     const chain = current.chains.find((c) => c.id === value.chainId);
     if (chain?.rememberLastPersona && chain.lastPersonaId !== value.personaId) {
       const updated = { ...chain, lastPersonaId: value.personaId };
@@ -87,7 +97,8 @@ export async function startApp(client: Client) {
     exportDiagnostics: () => createDiagnosticReport(current),
     diagnostics: () => ({
       version: VERSION,
-      adapterEvidence: "candidate selectors / live verification blocked",
+      adapterEvidence:
+        "0.1.1 user-confirmed; Network layout candidates require live verification",
       conversationId: latest?.conversation?.id ?? null,
       projectId: latest?.projectId ?? null,
       chainId: selection.chainId,
@@ -105,6 +116,11 @@ export async function startApp(client: Client) {
   });
   function apply() {
     safe("appearance", () => appearance.apply(current.settings));
+    safe("layout-theme", () => layout.apply(current.settings));
+    safe("message-layout", () =>
+      messages.apply(current, selection, latest?.phase ?? "unknown"),
+    );
+    safe("composer-identity", () => composerIdentity.apply(current, selection));
     safe("navigation", () => {
       adapter.showSidebar(
         !(
@@ -182,6 +198,11 @@ export async function startApp(client: Client) {
         );
     }
     safe("appearance", () => appearance.refreshRegions(current.settings));
+    safe("layout-theme", () => layout.apply(current.settings));
+    safe("message-layout", () =>
+      messages.apply(current, selection, snapshot.phase),
+    );
+    safe("composer-identity", () => composerIdentity.apply(current, selection));
     safe("generation", () => guard.update(snapshot));
     safe("identity", () => shell.update(snapshot));
     safe("performance", () =>
@@ -202,6 +223,9 @@ export async function startApp(client: Client) {
       stop();
       unsubscribe();
       guard.dispose();
+      composerIdentity.dispose();
+      messages.dispose();
+      layout.dispose();
       appearance.dispose();
       optimizer.dispose();
       shell.dispose();

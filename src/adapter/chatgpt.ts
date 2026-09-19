@@ -1,3 +1,4 @@
+import { resolveMessages } from "./messages";
 import { selectors as S } from "./selectors";
 import { GenerationTracker } from "./generation";
 import { resolveRegions } from "./regions";
@@ -41,7 +42,11 @@ export class DOMChatGPTAdapter implements ChatGPTAdapter {
     return document.querySelector<HTMLButtonElement>(S.send);
   }
   turns() {
-    return [...document.querySelectorAll<HTMLElement>(S.turn)];
+    const legacy = [...document.querySelectorAll<HTMLElement>(S.turn)];
+    const additional = resolveMessages()
+      .map((r) => r.turn)
+      .filter((node) => !legacy.some((t) => t.contains(node)));
+    return [...new Set([...legacy, ...additional])];
   }
   private visible(el: HTMLElement | null) {
     return !!el && !el.hidden && el.getClientRects().length > 0;
@@ -56,9 +61,9 @@ export class DOMChatGPTAdapter implements ChatGPTAdapter {
     }
     const composer = this.composer();
     const stop = this.visible(document.querySelector(S.stop));
-    const lastAssistant = document
-      .querySelectorAll<HTMLElement>(S.assistant)
-      .item(document.querySelectorAll(S.assistant).length - 1);
+    const lastAssistant = resolveMessages()
+      .filter((r) => r.role === "assistant")
+      .at(-1)?.node;
     const answers =
       lastAssistant?.querySelectorAll<HTMLElement>(S.finalText) ?? [];
     const final = [...answers].filter((e) => !e.closest(S.progress)).at(-1);
@@ -84,9 +89,6 @@ export class DOMChatGPTAdapter implements ChatGPTAdapter {
             url: `https://chatgpt.com${route}`,
             title:
               link?.title ||
-              (this.lastSnapshot?.route === route
-                ? this.lastSnapshot.conversation?.title
-                : null) ||
               document.title.replace(/\s*[-–|]\s*ChatGPT$/, "") ||
               "Conversa",
           }

@@ -38,6 +38,10 @@ function topStrip(node: HTMLElement) {
   return r.top >= -2 && r.top < 96 && r.height <= 160 && r.width >= 240;
 }
 export function resolveHeader(doc: Document = document): HTMLElement | null {
+  const integrated = doc.querySelector<HTMLElement>(
+    "[data-nagi-context-header]",
+  );
+  if (integrated && safeHeader(integrated)) return integrated;
   const known = [...doc.querySelectorAll<HTMLElement>(headerSelector)].find(
     (node) => safeHeader(node) && topStrip(node),
   );
@@ -68,7 +72,69 @@ export function resolveHeader(doc: Document = document): HTMLElement | null {
 export function headerControls(header: HTMLElement | null) {
   return header
     ? [...header.querySelectorAll<HTMLElement>(interactive)].filter(
-        (e) => !e.closest('[role="menu"],[role="dialog"],[data-nagi-owned]'),
+        (e) =>
+          !e.closest(
+            '[role="menu"],[role="dialog"],[role="listbox"],[role="tooltip"],[data-radix-popper-content-wrapper],[data-nagi-owned]',
+          ),
       )
     : [];
+}
+
+/** Labels are used only in the local UI, never in exported diagnostics. */
+export function readHeaderContext(header: HTMLElement | null) {
+  const textNodes: { text: string; parent: Element | null }[] = [];
+  if (header) {
+    const walker = header.ownerDocument.createTreeWalker(header, 4);
+    while (walker.nextNode())
+      textNodes.push({
+        text: walker.currentNode.textContent?.trim() ?? "",
+        parent: walker.currentNode.parentElement,
+      });
+  }
+  const work = textNodes.some(
+    ({ text, parent }) =>
+      !parent?.closest("[role=menu],[role=dialog]") &&
+      (/^Work$/i.test(text) || /[·|/]\s*Work$/i.test(text)),
+  );
+  const explicit = header
+    ?.querySelector<HTMLElement>(
+      '[data-testid="conversation-title"],[data-testid="chat-title"],[data-testid="conversation-title-button"],h1',
+    )
+    ?.textContent?.trim();
+  const plain = textNodes
+    .filter(
+      ({ text, parent }) =>
+        text &&
+        !/^(?:Work|[·|/])$/i.test(text) &&
+        !parent?.closest(
+          "button,a,[role=button],svg,[role=menu],[role=dialog],[hidden]",
+        ),
+    )
+    .map(({ text }) => text)
+    .join(" ")
+    .replace(/\s*[·|/]\s*Work\s*$/i, "")
+    .trim();
+  let project: { id: string; title: string; url: string } | null = null;
+  for (const link of header?.querySelectorAll<HTMLAnchorElement>("a[href]") ??
+    []) {
+    try {
+      const url = new URL(link.href, header?.ownerDocument.location.href);
+      const id = url.pathname.match(/^\/g\/(g-p-[^/]+)(?:\/project)?\/?$/)?.[1];
+      if (id && url.origin === "https://chatgpt.com") {
+        project = {
+          id,
+          title: link.textContent?.trim() || "Projeto",
+          url: url.href,
+        };
+        break;
+      }
+    } catch {
+      /* An invalid link is not evidence of project context. */
+    }
+  }
+  return {
+    work,
+    title: (explicit || plain || null)?.slice(0, 200) ?? null,
+    project,
+  };
 }

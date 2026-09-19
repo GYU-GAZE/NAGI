@@ -9,6 +9,36 @@ export interface Theme {
   composer: string;
   width: number;
 }
+export interface LayoutSettings {
+  variant: "network" | "compact";
+  contextBar: boolean;
+  promptNavigator: boolean;
+  messageCards: boolean;
+  messageAvatars: boolean;
+  messageNames: boolean;
+  grid: boolean;
+  composerFrame: boolean;
+  accent: string;
+  avatarSize: number;
+  messageGap: number;
+  userName: string;
+  userAvatar: string;
+}
+export const defaultLayout: LayoutSettings = {
+  variant: "network",
+  contextBar: true,
+  promptNavigator: true,
+  messageCards: true,
+  messageAvatars: true,
+  messageNames: true,
+  grid: true,
+  composerFrame: true,
+  accent: "#32d9f5",
+  avatarSize: 64,
+  messageGap: 24,
+  userName: "Você",
+  userAvatar: "",
+};
 export interface Settings {
   enabled: boolean;
   appearance: boolean;
@@ -23,6 +53,7 @@ export interface Settings {
   reduceMotion: boolean;
   debug: boolean;
   theme: Theme;
+  layout: LayoutSettings;
 }
 export interface PersonaVersion {
   version: number;
@@ -104,6 +135,13 @@ export const defaultTheme: Theme = {
   width: 850,
 };
 export const presets: Record<string, Theme> = {
+  Network: {
+    ...defaultTheme,
+    background: "#03131f",
+    composer: "#061c2b",
+    code: "#04121d",
+    width: 1040,
+  },
   "Terminal azul": defaultTheme,
   Papel: {
     font: "Georgia",
@@ -142,6 +180,7 @@ export function initialState(): State {
       reduceMotion: false,
       debug: false,
       theme: { ...defaultTheme },
+      layout: { ...defaultLayout },
     },
     personas: [],
     chains: [],

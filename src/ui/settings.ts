@@ -1,6 +1,8 @@
 import { el, button, field, input, select, checkbox, note } from "./dom";
 import {
   presets,
+  defaultLayout,
+  type LayoutSettings,
   newChain,
   type State,
   type Settings,
@@ -37,6 +39,7 @@ export class SettingsUI {
     for (const name of [
       "Geral",
       "Aparência",
+      "Layout",
       "Personas",
       "Chains",
       "Diagnóstico",
@@ -51,6 +54,7 @@ export class SettingsUI {
     this.root.append(tabs, this.body, this.status);
     if (page === "Geral") this.general();
     if (page === "Aparência") this.appearance();
+    if (page === "Layout") this.layout();
     if (page === "Personas") this.personas();
     if (page === "Chains") this.chains();
     if (page === "Diagnóstico") void this.debug();
@@ -115,7 +119,7 @@ export class SettingsUI {
         (v) => void this.run(() => this.settings({ hideSidebar: v })),
       ),
       note(
-        "Se o DOM mudar, a sidebar permanece acessível. Layout HTML/CSS personalizado fica para o próximo marco.",
+        "Os módulos estruturais e a identidade visual das mensagens podem ser ajustados na aba Layout. A navegação original continua disponível para recuperação.",
       ),
     );
     this.body.append(
@@ -204,6 +208,158 @@ export class SettingsUI {
               },
             });
           }),
+      ),
+    );
+  }
+  private layout() {
+    const l = this.ctx.state().settings.layout;
+    this.body.append(
+      el("h2", "Layout modular"),
+      note(
+        "Cada parte pode ser ligada ou desligada separadamente. A aparência da conta e o conteúdo das conversas não são alterados.",
+      ),
+    );
+    const variant = select(
+      [
+        ["network", "Network · referência visual"],
+        ["compact", "Compacto · barra da versão anterior"],
+      ],
+      l.variant,
+    );
+    variant.onchange = () =>
+      void this.run(() =>
+        this.settings({
+          layout: {
+            ...this.ctx.state().settings.layout,
+            variant: variant.value as LayoutSettings["variant"],
+          },
+        }),
+      );
+    this.body.append(
+      field("Estrutura", variant),
+      button(
+        "Aplicar visual da referência",
+        () =>
+          void this.run(async () => {
+            await this.settings({
+              appearance: true,
+              navigation: "topbar",
+              hideSidebar: true,
+              showName: true,
+              theme: { ...presets.Network },
+              layout: {
+                ...defaultLayout,
+                userName: l.userName,
+                userAvatar: l.userAvatar,
+              },
+            });
+            this.render("Layout");
+          }),
+      ),
+      note(
+        "O preset aplica a paleta azul/ciano, grade e largura de 1040 px. Preserva seu nome e avatar. Para manter suas cores atuais, ajuste apenas os módulos abaixo.",
+      ),
+    );
+    const toggles: [keyof LayoutSettings, string][] = [
+      ["contextBar", "Contexto: chat, projeto, Work, Chain e Persona"],
+      ["promptNavigator", "Navegação entre prompts enviados"],
+      ["messageCards", "Cards de mensagem"],
+      ["messageAvatars", "Avatares ao lado das mensagens"],
+      ["messageNames", "Nomes abaixo dos avatares"],
+      ["grid", "Grade de fundo"],
+      ["composerFrame", "Moldura e seletor de Persona no campo de mensagem"],
+    ];
+    for (const [key, label] of toggles)
+      this.body.append(
+        checkbox(
+          label,
+          l[key] as boolean,
+          (v) =>
+            void this.run(() =>
+              this.settings({
+                layout: { ...this.ctx.state().settings.layout, [key]: v },
+              }),
+            ),
+        ),
+      );
+    const accent = input(l.accent, "color"),
+      size = input(String(l.avatarSize), "number"),
+      gap = input(String(l.messageGap), "number"),
+      name = input(l.userName);
+    size.min = "32";
+    size.max = "96";
+    gap.min = "8";
+    gap.max = "64";
+    name.maxLength = 80;
+    const grid = el("div", undefined, "grid");
+    grid.append(
+      field("Destaque", accent),
+      field("Avatar (px)", size),
+      field("Espaço entre mensagens (px)", gap),
+      field("Seu nome nas mensagens", name),
+    );
+    let avatar = l.userAvatar;
+    const preview = el("img", undefined, "portrait");
+    preview.alt = "Seu avatar";
+    preview.hidden = !avatar;
+    if (avatar) preview.src = avatar;
+    const file = input("", "file");
+    file.accept = "image/png,image/jpeg,image/gif,image/webp";
+    file.onchange = () =>
+      void this.run(async () => {
+        const f = file.files?.[0];
+        if (!f) return;
+        if (
+          f.size > 256 * 1024 ||
+          !["image/png", "image/jpeg", "image/gif", "image/webp"].includes(
+            f.type,
+          )
+        )
+          throw new Error("Use PNG, JPEG, GIF ou WebP de até 256 KB.");
+        const data = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result));
+          reader.onerror = () => reject(new Error("Falha ao ler imagem."));
+          reader.readAsDataURL(f);
+        });
+        if (!validImage(data)) throw new Error("Imagem inválida.");
+        const image = new Image();
+        image.src = data;
+        await image.decode();
+        if (image.naturalWidth > 2048 || image.naturalHeight > 2048)
+          throw new Error("Use imagem de no máximo 2048 × 2048 pixels.");
+        avatar = data;
+        preview.src = data;
+        preview.hidden = false;
+      });
+    this.body.append(
+      grid,
+      el("h3", "Seu avatar"),
+      preview,
+      field("Imagem local", file),
+      button("Remover seu avatar", () => {
+        avatar = "";
+        preview.removeAttribute("src");
+        preview.hidden = true;
+      }),
+      note(
+        "As respostas usam a identidade visual da Persona selecionada. Isso não registra autoria histórica nem aplica suas instruções ao ChatGPT. Sem imagem, aparece um monograma. Horários não são inventados.",
+      ),
+      button(
+        "Salvar detalhes do layout",
+        () =>
+          void this.run(() =>
+            this.settings({
+              layout: {
+                ...this.ctx.state().settings.layout,
+                accent: accent.value,
+                avatarSize: Number(size.value),
+                messageGap: Number(gap.value),
+                userName: name.value.trim(),
+                userAvatar: avatar,
+              },
+            }),
+          ),
       ),
     );
   }

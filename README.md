@@ -1,8 +1,21 @@
-# nAGI · 0.1.2
+# nAGI · 0.2.0
 
 Extensão modular para o **ChatGPT Web oficial**. Sem API key, backend próprio, telemetria ou alteração automática das instruções da conta.
 
-**Este pacote é experimental.** O usuário confirmou as correções de digitação, sidebar e composer da 0.1.1 em seu ChatGPT Work/Firefox e enviou print e diagnóstico. A integração do cabeçalho da 0.1.2 passa pelos testes locais, mas ainda precisa de confirmação visual nesse frontend. O ambiente de desenvolvimento não teve acesso ao ChatGPT autenticado; não há medição real de ganho de renderização.
+**Este pacote é experimental.** O usuário confirmou as correções de digitação, sidebar e composer da 0.1.1 em seu ChatGPT Work/Firefox e enviou print e diagnóstico. O novo layout Network da 0.2.0 passa pelos testes locais, mas ainda precisa de confirmação visual nesse frontend. O ambiente de desenvolvimento não teve acesso ao ChatGPT autenticado; não há medição real de ganho de renderização.
+
+## Atualização 0.2.0 · layout Network modular
+
+- Barra completa de ferramentas no topo e faixa de contexto separada com chat/projeto/Work, Chain, sessão e Persona.
+- Share, More e Files and Sources reais posicionados ao lado do contexto, preservando nós e eventos do site.
+- Setas e lista para navegar entre prompts do usuário já carregados; setas de sessão da Chain independentes.
+- Cards centralizados, avatar/nome do usuário à direita e da Persona à esquerda, grade de fundo e moldura do composer.
+- Configurações independentes em **Layout**: cards, avatares, nomes, contexto, prompts, grade e composer, além de cor de destaque, tamanho dos avatares, espaçamento, nome e avatar do usuário.
+- Migração aditiva, mantendo os dados da instalação anterior. O modo **Compacto** mantém a estrutura anterior como alternativa.
+
+Depois de atualizar, abra **Configurações → Layout → Aplicar visual da referência** para aplicar também a paleta azul/ciano e a largura do mockup. As cores anteriores são preservadas durante a atualização até essa escolha. Configure seu nome/avatar nessa mesma aba; os retratos de resposta são os da Persona selecionada. Não são incluídas cópias dos personagens da imagem nem horários inventados.
+
+Veja [LAYOUT.md](docs/LAYOUT.md) para a divisão de módulos, tokens, comportamento e limites de detecção. As instruções das Personas continuam sem aplicação automática; esta entrega modifica estrutura, apresentação e navegação.
 
 ## Atualização 0.1.2 · cabeçalho integrado
 
@@ -12,7 +25,7 @@ Extensão modular para o **ChatGPT Web oficial**. Sem API key, backend próprio,
 - Pausar ou selecionar navegação nativa restaura a apresentação original. Se nenhum cabeçalho seguro for reconhecido, ele permanece intacto e a barra compacta nAGI continua disponível.
 - O diagnóstico agora inclui a detecção do cabeçalho, geometria e categorias de ações. Não inclui título da conversa nem rótulos privados.
 
-O painel de arquivos/fontes continua sendo o painel funcional do ChatGPT. Esta revisão integra seu botão de acesso ao cabeçalho nAGI; o layout final será definido pelo mockup do usuário.
+O painel de arquivos/fontes continua sendo o painel funcional do ChatGPT. A 0.2.0 evolui esta integração conforme o mockup recebido.
 
 ## Atualização 0.1.1 · correções de interface
 

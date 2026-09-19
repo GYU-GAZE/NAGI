@@ -289,3 +289,51 @@ test("transient missing stop does not signal generation completion", () => {
     "thinking",
   );
 });
+
+test("0.1 state migrates additively to modular layout without losing theme, personas or chains", () => {
+  const original = initialState();
+  original.settings.theme.background = "#123456";
+  (original.settings as any).layout = undefined;
+  const migrated = migrate(original);
+  assert.equal(migrated.settings.layout.variant, "network");
+  assert.equal(migrated.settings.theme.background, "#123456");
+  assert.equal(original.settings.layout, undefined);
+  const edited = reduce(migrated, {
+    type: "settings",
+    patch: {
+      layout: {
+        ...migrated.settings.layout,
+        userName: "PRIVATE USER",
+        messageCards: false,
+      },
+    },
+  });
+  assert.equal(edited.settings.layout.messageCards, false);
+  assert.equal(edited.settings.layout.grid, true);
+  assert.equal(edited.settings.layout.userName, "PRIVATE USER");
+  assert.throws(() =>
+    reduce(edited, {
+      type: "settings",
+      patch: {
+        layout: { ...edited.settings.layout, accent: "red;display:none" },
+      },
+    }),
+  );
+  assert.throws(() =>
+    reduce(edited, {
+      type: "settings",
+      patch: {
+        layout: {
+          ...edited.settings.layout,
+          userAvatar: "https://remote/avatar.png",
+        },
+      },
+    }),
+  );
+  assert.throws(() =>
+    reduce(edited, {
+      type: "settings",
+      patch: { layout: { ...edited.settings.layout, avatarSize: 500 } },
+    }),
+  );
+});

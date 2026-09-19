@@ -1,3 +1,4 @@
+import { migrate } from "./validation";
 import type { Command, State, Selection, SendLock } from "./model";
 export interface Reply<T> {
   ok: boolean;
@@ -37,7 +38,7 @@ export class ExtensionClient implements Client {
       area: string,
     ) => {
       if (area === "local" && changes.nagi?.newValue)
-        fn(changes.nagi.newValue as State);
+        fn(migrate(changes.nagi.newValue));
     };
     chrome.storage.onChanged.addListener(handler);
     return () => chrome.storage.onChanged.removeListener(handler);

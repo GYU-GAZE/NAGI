@@ -91,11 +91,16 @@ html,body{margin:0;padding:0;background:#182131;overflow:hidden}
     const integrated = document.documentElement.hasAttribute(
       "data-nagi-header-active",
     );
-    const panelTop = integrated
-      ? document.documentElement.hasAttribute("data-nagi-header-stacked")
-        ? 120
-        : 68
-      : 60;
+    const networkHeight = parseFloat(
+      document.documentElement.style.getPropertyValue("--nagi-shell-height"),
+    );
+    const panelTop = networkHeight
+      ? networkHeight + 8
+      : integrated
+        ? document.documentElement.hasAttribute("data-nagi-header-stacked")
+          ? 120
+          : 68
+        : 60;
     const maximum = Math.max(
       160,
       window.innerHeight - (this.native ? 100 : panelTop + 24),

@@ -1,3 +1,4 @@
+import { messageSelector } from "./messages";
 import { selectors as S } from "./selectors";
 
 export interface Regions {
@@ -106,7 +107,7 @@ export function resolveRegions(doc: Document = document): Regions {
       ancestor === doc.body ||
       ancestor === doc.documentElement ||
       ancestor === main ||
-      ancestor.querySelector(S.turn) ||
+      ancestor.querySelector(`${S.turn},${messageSelector}`) ||
       own(ancestor)
     )
       break;

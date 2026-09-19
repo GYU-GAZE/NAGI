@@ -1,5 +1,6 @@
 import {
   initialState,
+  defaultLayout,
   type State,
   type Command,
   type Chain,
@@ -58,6 +59,32 @@ export function validateSettings(s: Settings) {
   if (!["native", "topbar"].includes(s.navigation)) fail("Navegacao invalida.");
   if (!Number.isInteger(s.keepTurns) || s.keepTurns < 4 || s.keepTurns > 200)
     fail("Mantenha entre 4 e 200 turnos.");
+  const l = s.layout;
+  if (!l || !["network", "compact"].includes(l.variant))
+    fail("Layout inválido.");
+  for (const key of [
+    "contextBar",
+    "promptNavigator",
+    "messageCards",
+    "messageAvatars",
+    "messageNames",
+    "grid",
+    "composerFrame",
+  ] as const)
+    if (typeof l[key] !== "boolean") fail("Módulo de layout inválido.");
+  if (!/^#[0-9a-f]{6}$/i.test(l.accent)) fail("Cor de destaque inválida.");
+  if (
+    !Number.isInteger(l.avatarSize) ||
+    l.avatarSize < 32 ||
+    l.avatarSize > 96 ||
+    !Number.isInteger(l.messageGap) ||
+    l.messageGap < 8 ||
+    l.messageGap > 64
+  )
+    fail("Dimensões do layout inválidas.");
+  text(l.userName, 80, false);
+  if (l.userAvatar !== "" && !validImage(l.userAvatar))
+    fail("Avatar de usuário inválido.");
   const t = s.theme;
   text(t.font, 120, false);
   if (!/^[\w\s,'"-]+$/.test(t.font))
@@ -133,6 +160,9 @@ export function migrate(value: unknown): State {
       "Formato de dados desconhecido. Dados preservados; atualize a extensao.",
     );
   const s = structuredClone(value) as State;
+  if (!s.settings || typeof s.settings !== "object")
+    fail("Configurações inválidas.");
+  if (s.settings.layout === undefined) s.settings.layout = { ...defaultLayout };
   validateState(s);
   return s;
 }

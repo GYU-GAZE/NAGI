@@ -1,6 +1,11 @@
 import { el, button, select, checkbox, note, uiCSS } from "./dom";
 import { SettingsUI, type SettingsContext } from "./settings";
 import { IsolatedPanel } from "./isolated-panel";
+import { ContextHeaderBridge } from "../features/context-header";
+import { PromptNavigator } from "../features/prompt-navigator";
+import { ContextBar } from "./context-bar";
+import { icon } from "./icons";
+import { networkCSS } from "./network-css";
 import { HeaderIntegration } from "../features/header";
 import type { State, Selection, Chain, Phase } from "../shared/model";
 import type { ChatGPTAdapter, Snapshot } from "../adapter/chatgpt";
@@ -28,12 +33,19 @@ export class Shell {
   private lastFocus: HTMLElement | null = null;
   private currentPhase: Phase = "unknown";
   private header = new HeaderIntegration();
+  private nativeContext = new ContextHeaderBridge();
+  private prompts = new PromptNavigator(() => this.open("prompts"));
+  private context = new ContextBar(
+    (kind) => this.open(kind),
+    this.prompts.host,
+  );
+  private resizeObserver: ResizeObserver | null = null;
   private onResize = () => this.updateHeader();
   constructor(private ctx: ShellContext) {
     this.host.dataset.nagiOwned = "shell";
     this.host.id = "nagi-root";
     this.shadow = this.host.attachShadow({ mode: "open" });
-    const style = el("style", uiCSS);
+    const style = el("style", uiCSS + networkCSS);
     this.bar.className = "bar";
     this.bar.setAttribute("aria-label", "nAGI");
     this.panel.className = "panel";
@@ -41,10 +53,15 @@ export class Shell {
     this.panel.setAttribute("role", "region");
     this.panel.setAttribute("aria-label", "Painel nAGI");
     this.messages.setAttribute("aria-live", "polite");
-    this.shadow.append(style, this.bar, this.messages);
+    this.shadow.append(style, this.bar, this.context.host, this.messages);
     document.body.append(this.host);
     this.isolated = new IsolatedPanel(this.panel, () => this.close());
     window.addEventListener("resize", this.onResize);
+    if (typeof ResizeObserver !== "undefined") {
+      this.resizeObserver = new ResizeObserver(this.onResize);
+      this.resizeObserver.observe(this.bar);
+      this.resizeObserver.observe(this.context.host);
+    }
     this.shadow.addEventListener("keydown", (e) => {
       if ((e as KeyboardEvent).key === "Escape") {
         this.close();
@@ -54,6 +71,11 @@ export class Shell {
   }
   render() {
     const s = this.ctx.state().settings;
+    this.host.toggleAttribute(
+      "data-network-shell",
+      s.enabled && s.navigation === "topbar" && s.layout.variant === "network",
+    );
+    this.context.host.hidden = !this.host.hasAttribute("data-network-shell");
     this.isolated.place(!s.enabled || s.navigation === "native");
     this.host.style.cssText =
       s.enabled && s.navigation === "topbar"
@@ -68,6 +90,11 @@ export class Shell {
           "⚙",
         ),
       );
+      this.updateHeader();
+      return;
+    }
+    if (s.layout.variant === "network") {
+      this.renderNetwork();
       this.updateHeader();
       return;
     }
@@ -114,18 +141,122 @@ export class Shell {
     );
     this.updateHeader();
   }
-  private updateHeader() {
-    const integrated = this.header.refresh(
-      this.ctx.state().settings,
-      this.bar.getBoundingClientRect().width,
+  private renderNetwork() {
+    const s = this.ctx.state().settings;
+    const brand = el("div", undefined, "brand");
+    brand.append(
+      el("span", "nAGI", "brand-word"),
+      el(
+        "span",
+        "MORE CONTEXT.\nDEEPER THOUGHT.\nA BRIGHTER YOU.",
+        "brand-note",
+      ),
     );
-    this.host.toggleAttribute("data-nagi-header-shell", integrated);
+    const tool = (
+      label: string,
+      name: string,
+      run: () => void,
+      small = false,
+    ) => {
+      const b = button(label, run);
+      b.className = small ? "tool tool-small" : "tool";
+      b.replaceChildren(icon(name));
+      if (!small) b.append(el("span", label));
+      return b;
+    };
+    const home = el("a", undefined, "tool");
+    home.href = "https://chatgpt.com/";
+    home.title = "Início";
+    home.setAttribute("aria-label", "Início");
+    home.append(icon("home"), el("span", "Início"));
+    this.bar.append(
+      brand,
+      home,
+      tool("Novo chat", "plus", () => this.ctx.adapter.newChat()),
+      tool("Chats recentes", "recent", () => this.open("recent")),
+      tool("Projects", "folder", () => this.open("projects")),
+    );
+    if (s.chains)
+      this.bar.append(
+        tool("Conversation Chains", "chain", () => this.open("chains")),
+      );
+    this.bar.append(
+      tool("Configurações", "settings", () => this.open("settings")),
+    );
+    if (s.personas) {
+      this.identity = el("div", undefined, "identity");
+      this.avatar = el("img");
+      this.avatar.alt = "";
+      this.name = el("span", undefined, "name");
+      this.dot = el("i", undefined, "state-dot");
+      this.identity.append(this.avatar, this.name, this.dot, el("span", "⌄"));
+      const answer = button("Answer with…", () => this.open("answer"));
+      answer.className = "answer-choice";
+      answer.replaceChildren(
+        el("span", "Answer with:", "answer-label"),
+        this.identity,
+      );
+      this.bar.append(answer);
+      this.updateIdentity();
+    } else this.bar.append(el("span", undefined, "spacer"));
+    if (s.debug)
+      this.bar.append(
+        tool("Diagnóstico", "debug", () => this.open("debug"), true),
+      );
+    this.bar.append(
+      tool(
+        "Mostrar sidebar original",
+        "sidebar",
+        () => {
+          void this.ctx.client
+            .mutate({
+              type: "settings",
+              patch: { hideSidebar: !this.ctx.state().settings.hideSidebar },
+            })
+            .then((st) => this.ctx.refresh(st))
+            .catch((e) => this.message(String(e)));
+        },
+        true,
+      ),
+      tool("Pausar nAGI", "pause", () => this.ctx.pause(), true),
+    );
+  }
+  private updateHeader() {
+    const s = this.ctx.state().settings;
+    const network =
+      s.enabled && s.navigation === "topbar" && s.layout.variant === "network";
+    const root = document.documentElement;
+    if (network) {
+      this.header.refresh({ ...s, navigation: "native" }, 0);
+      this.host.removeAttribute("data-nagi-header-shell");
+      this.context.update(
+        this.ctx.state(),
+        this.ctx.selection(),
+        this.ctx.snapshot!(),
+        this.ctx.adapter.projects(),
+      );
+      this.prompts.update(s.layout.promptNavigator, s.reduceMotion);
+      this.nativeContext.refresh(this.context.nativeSlot, true);
+      const height =
+        this.bar.getBoundingClientRect().height +
+        this.context.host.getBoundingClientRect().height;
+      root.style.setProperty("--nagi-shell-height", `${height || 140}px`);
+    } else {
+      this.nativeContext.refresh(this.context.nativeSlot, false);
+      this.prompts.update(false, s.reduceMotion);
+      root.style.removeProperty("--nagi-shell-height");
+      const integrated = this.header.refresh(
+        s,
+        this.bar.getBoundingClientRect().width,
+      );
+      this.host.toggleAttribute("data-nagi-header-shell", integrated);
+    }
     this.isolated.resize();
   }
   update(snapshot: Snapshot) {
-    this.updateHeader();
     this.currentPhase = snapshot.phase;
     this.updateIdentity();
+    this.updateHeader();
   }
   private updateIdentity() {
     const state = this.ctx.state();
@@ -180,6 +311,7 @@ export class Shell {
         projects: "Projects",
         chains: "Conversation Chains",
         answer: "Answer with…",
+        prompts: "Prompts enviados",
       } as Record<string, string>
     )[kind];
     head.append(
@@ -228,6 +360,7 @@ export class Shell {
         }),
       );
     }
+    if (kind === "prompts") this.prompts.renderList(body, () => this.close());
     if (kind === "answer") this.answer(body);
     if (kind === "chains") this.chains(body);
     this.isolated.resize();
@@ -377,6 +510,10 @@ export class Shell {
   }
   dispose() {
     window.removeEventListener("resize", this.onResize);
+    this.resizeObserver?.disconnect();
+    this.nativeContext.dispose();
+    this.prompts.dispose();
+    document.documentElement.style.removeProperty("--nagi-shell-height");
     this.header.dispose();
     this.isolated.dispose();
     this.host.remove();

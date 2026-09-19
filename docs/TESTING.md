@@ -54,3 +54,11 @@ A confirmação visual no Firefox real continua pendente do exemplo do usuário.
 43 testes locais (Node + JSDOM): inclui reconhecimento do cabeçalho Work sem ID conhecido, exclusão da conversa/painel lateral, preservação de nós/pais/eventos dos controles, nenhum click automático, exclusão dos itens de menus, largura que ativa duas linhas, pausa/navegação nativa/dispose, substituição do cabeçalho e privacidade do diagnóstico. O teste de app verifica a integração junto com tema, sidebar, performance e pausa. JSDOM não valida renderização CSS; dimensões das fixtures são simuladas.
 
 Validação manual pendente no frontend do usuário: confirmar que não sobra faixa preta; testar Share (abrir e cancelar), menu (abrir e fechar), Files and Sources (abrir/fechar), título/Work, título longo, sidebar aberta, zoom/janela estreita e troca de chat. Conferir que menus e diálogos ficam acima da barra, que as opções não cobrem as ferramentas em duas linhas e que pausar restaura o cabeçalho. Enviar diagnóstico 0.1.2 e print para comparação.
+
+## Regressões 0.2.0
+
+53 testes locais. Além das regressões anteriores, há migração aditiva e validação de opções; mensagens por papel sem article; preservação de texto, código, botões e rascunho; troca independente de cards/retratos/nomes; limpeza de nós substituídos; docking dos controles nativos sem clicks automáticos; lista/rolagem de prompts, reduced motion e troca de rota; contexto Project/Work/Chain/Persona e links entre sessões; seletor no composer; privacidade do usuário e das prévias no diagnóstico; troca Network/Compacto pelo painel real de configurações.
+
+A fixture `npm run demo` abre quatro mensagens e controles de cabeçalho simulados, sem conta ou envio externo. O benchmark sintético continua disponível pela sidebar. O preset Network é carregado apenas na primeira inicialização da fixture.
+
+Validação visual autenticada pendente: comparar com o mockup, testar títulos longos, sidebar aberta/fechada, janela estreita/zoom, Share/More/Files, rolagem de prompts em conversas longas, respostas com ferramentas, anexos, tabelas/código e envio/stop. Exportar diagnóstico 0.2.0 e comparar counts.userMessages/assistantMessages com o conteúdo carregado. Nenhum teste JSDOM comprova posicionamento real de CSS ou compatibilidade de novos hooks no Work.

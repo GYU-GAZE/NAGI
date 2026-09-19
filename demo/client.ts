@@ -2,7 +2,12 @@
 import { Coordinator, type KV } from "../src/background/coordinator";
 import { startApp } from "../src/app";
 import type { Client } from "../src/shared/platform";
-import type { State, Command } from "../src/shared/model";
+import {
+  initialState,
+  presets,
+  type State,
+  type Command,
+} from "../src/shared/model";
 const kv: KV = {
   get: async (k) => {
     const v = localStorage.getItem(`nagi-fixture:${k}`);
@@ -65,7 +70,26 @@ const client: Client = {
     };
   },
 };
-void startApp(client);
+async function boot() {
+  if (!(await kv.get("nagi"))) {
+    const state = initialState();
+    state.settings.appearance = true;
+    state.settings.hideSidebar = true;
+    state.settings.showName = true;
+    state.settings.theme = { ...presets.Network };
+    state.settings.layout.userName = "Gyu";
+    await kv.set("nagi", state);
+  }
+  await startApp(client);
+}
+void boot();
+for (const id of ["demo-share", "demo-more", "demo-files"]) {
+  document
+    .getElementById(id)!
+    .addEventListener("click", () =>
+      document.querySelector<HTMLDialogElement>("#demo-dialog")!.showModal(),
+    );
+}
 const conversation = document.querySelector("#conversation")!;
 let count = 0;
 let active: ReturnType<typeof setTimeout>[] = [];
@@ -82,7 +106,7 @@ function turn(role: string, text: string) {
   conversation.append(article);
   return content;
 }
-for (let i = 0; i < 36; i++)
+for (let i = 0; i < 4; i++)
   turn(
     i % 2 ? "assistant" : "user",
     i % 2
