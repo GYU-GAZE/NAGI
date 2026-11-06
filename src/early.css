@@ -1,0 +1,6 @@
+/* Registered CSS is available before DOM parsing; saved settings gate these rules. */
+html[data-nagi-preload]{background:var(--nagi-background)!important;color:var(--nagi-text)!important;--main-surface-primary:var(--nagi-background);--main-surface-secondary:var(--nagi-composer-bg);--bg-primary:var(--nagi-background);--bg-secondary:var(--nagi-composer-bg);--text-primary:var(--nagi-text);--text-secondary:var(--nagi-text)}
+html[data-nagi-preload] body,html[data-nagi-preload] main{background-color:var(--nagi-background)!important;color:var(--nagi-text)!important;font-family:var(--nagi-font)!important}
+html[data-nagi-preload] :is(h1,h2,h3,button,input,textarea,#prompt-textarea){font-family:var(--nagi-font)!important;color:var(--nagi-text)!important}
+html[data-nagi-preload] :is(#composer-background,[data-testid=composer-background]){background:var(--nagi-composer-bg)!important}
+html[data-nagi-preload-sidebar] :is(#history,#sidebar,#stage-slideover-sidebar,#stage-sidebar-tiny-bar,[data-testid=sidebar],[data-testid=history-sidebar]){display:none!important}
